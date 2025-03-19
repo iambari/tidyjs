@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { FormatterConfig, ImportGroup, TypeOrder } from '../types';
+import { FormatterConfig, ImportGroup, TypeOrder, ParserConfig } from '../types';
 
 export interface ConfigChangeEvent {
   configKey: string;
@@ -164,6 +164,25 @@ class ConfigManager {
       defaultGroupName: this.config.defaultGroupName || 'Misc',
       typeOrder: this.config.typeOrder,
       priorityImports: this.config.priorityImports
+    };
+  }
+
+  /**
+   * Convertit la configuration du formateur en configuration du parser
+   */
+  public getParserConfig(): ParserConfig {
+    return {
+      defaultGroupName: this.config.defaultGroupName || 'Misc',
+      typeOrder: this.config.typeOrder,
+      patterns: {
+        appSubfolderPattern: this.config.regexPatterns.appSubfolderPattern
+      },
+      importGroups: this.getImportGroups().map(group => ({
+        name: group.name,
+        regex: group.regex,
+        order: group.order,
+        isDefault: group.isDefault || group.name === (this.config.defaultGroupName || 'Misc')
+      }))
     };
   }
 }

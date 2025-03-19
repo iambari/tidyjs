@@ -5,32 +5,7 @@ import { configManager } from './utils/config';
 import { logDebug, logError } from './utils/log';
 
 // Initialiser le parser avec la configuration
-const parser = new ImportParser({
-  defaultGroupName: 'Misc',
-  typeOrder: {
-    sideEffect: 0,
-    default: 1,
-    named: 2,
-    typeDefault: 3,
-    typeNamed: 4
-  },
-  TypeOrder: {
-    default: 0,
-    named: 1,
-    typeDefault: 2,
-    typeNamed: 3,
-    sideEffect: 4
-  },
-  patterns: {
-    appSubfolderPattern: /@app\/([^/]+)/
-  },
-  importGroups: configManager.getImportGroups().map(group => ({
-    name: group.name,
-    regex: group.regex,
-    order: group.order,
-    isDefault: group.name === 'Misc'
-  }))
-});
+let parser = new ImportParser(configManager.getParserConfig());
 
 export function activate(context: vscode.ExtensionContext): void {
   configManager.loadConfiguration();
@@ -38,6 +13,8 @@ export function activate(context: vscode.ExtensionContext): void {
   vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration('tidyimport')) {
       configManager.loadConfiguration();
+      // Recréer le parser avec la nouvelle configuration
+      parser = new ImportParser(configManager.getParserConfig());
     }
   });
 

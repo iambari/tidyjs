@@ -195,7 +195,6 @@ function formatDefaultImport(defaultName: string, moduleName: string, isTypeImpo
         : `import ${defaultName} from '${moduleName}';`;
 }
 
-// Modifier la fonction formatNamedImports pour gérer les commentaires
 function formatNamedImports(
     namedImports: (string | ImportNameWithComment)[], 
     moduleName: string, 
@@ -211,14 +210,19 @@ function formatNamedImports(
             if (commentIndex !== -1) {
                 return item.substring(0, commentIndex).trim();
             }
-            return item;
+            return item.trim();
         }
         // For ImportNameWithComment objects, just return the name
-        return item.name;
+        return item.name.trim();
     });
     
     // Filter out any empty items that might have resulted from comment processing
     const cleanedItems = formattedItems.filter(item => item.trim() !== '');
+    
+    // Si aucun import n'est resté après nettoyage, gérer ce cas spécial
+    if (cleanedItems.length === 0) {
+        return `import ${typePrefix}{} from '${moduleName}';`;
+    }
     
     if (cleanedItems.length === 1) {
         return `import ${typePrefix}{ ${cleanedItems[0]} } from '${moduleName}';`;
@@ -966,44 +970,85 @@ function validateImportSection(text: string): { valid: boolean; message?: string
         };
       }
   
-      // Now check for any partial/incomplete imports
-      const fullText = sourceFile.getFullText();
-      // Check for unmatched braces or incomplete imports
-      const unmatchedBraces = (fullText.match(/{/g) ?? []).length !== (fullText.match(/}/g) ?? []).length;
-      const incompleteImport = /import\s+(?!.*?from)/.test(fullText) && !/import\s+['"]/.test(fullText);
+      // Vérification simplifiée des imports partiels/incomplets
+      const lines = text.split('\n');
+      let inMultilineImport = false;
+      let braceCount = 0;
       
-      if (unmatchedBraces ?? incompleteImport) {
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // Ignorer les lignes vides et les commentaires
+        if (trimmedLine === '' || trimmedLine.startsWith('//') || 
+            trimmedLine.startsWith('/*') || trimmedLine.startsWith('*')) {
+          continue;
+        }
+        
+        // Compter les accolades ouvrantes et fermantes
+        if (trimmedLine.includes('{')) {
+          inMultilineImport = true;
+          braceCount += (trimmedLine.match(/{/g) || []).length;
+        }
+        
+        if (trimmedLine.includes('}')) {
+          braceCount -= (trimmedLine.match(/}/g) || []).length;
+          if (braceCount === 0) {
+            inMultilineImport = false;
+          }
+        }
+        
+        // Vérifier les imports incomplets (débute par import mais pas de point-virgule à la fin)
+        if (trimmedLine.startsWith('import') && !inMultilineImport && !trimmedLine.endsWith(';')) {
+          return {
+            valid: false,
+            message: `Import incomplet détecté: ${trimmedLine}`
+          };
+        }
+      }
+      
+      // S'assurer que tous les imports multilignes sont bien fermés
+      if (inMultilineImport || braceCount !== 0) {
         return {
           valid: false,
-          message: 'Import section contains incomplete import statements'
+          message: 'Import section contains unclosed braces'
         };
       }
   
       return { valid: true };
     } catch {
-      // If typescript parser fails, treat as invalid but allow parsing fragments
+      // Si l'analyse TypeScript échoue, faire un contrôle plus simple
       
-      // Fall back to a simple regex check for common multiline import patterns
-      const importLinesRegex = /^(?:\s*import\s|{|\s*}|\s*[a-zA-Z0-9_$]+(?:,|\s+as\s+[a-zA-Z0-9_$]+)?\s*$|\s*\/\/|\s*\/\*|\s*\*|\s*\*\/|\s*$)/m;
-      
+      // Analyser chaque ligne pour détecter des fragments d'import valides
       const lines = text.split('\n');
-      const invalidLines = lines.filter((line) => !importLinesRegex.test(line))
-        .map((line, index) => ({ line: index + 1, text: line.trim() }))
-        .filter(item => item.text); // Filter out empty lines
+      let validImportLines = 0;
+      let totalNonEmptyLines = 0;
       
-      if (invalidLines.length === 0) {
-        // Seems to be just import fragments, which is fine
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) continue;
+        
+        totalNonEmptyLines++;
+        
+        // Vérifier si la ligne semble être un fragment d'import valide
+        if (trimmedLine.startsWith('import ') || 
+            trimmedLine.startsWith('// ') || 
+            trimmedLine.startsWith('{') || 
+            trimmedLine.startsWith('}') || 
+            trimmedLine.match(/^[a-zA-Z0-9_]+,?$/) || 
+            trimmedLine.match(/^[a-zA-Z0-9_]+\s+as\s+[a-zA-Z0-9_]+,?$/) ||
+            trimmedLine.match(/^[a-zA-Z0-9_]+\s+from\s+['"][^'"]+['"];?$/)) {
+          validImportLines++;
+        }
+      }
+      
+      // Si au moins 80% des lignes non vides semblent être des imports valides, considérer la section comme valide
+      if (totalNonEmptyLines > 0 && (validImportLines / totalNonEmptyLines) >= 0.8) {
         return { valid: true };
       }
       
-      const examples = invalidLines
-        .slice(0, 3)
-        .map(l => `Line ${l.line}: "${l.text}"`)
-        .join('\n');
-        
       return {
         valid: false,
-        message: `Found potential non-import code in import section:\n${examples}`
+        message: 'Import section contains syntax errors'
       };
     }
-}
+  }

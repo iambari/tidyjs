@@ -45,6 +45,13 @@ function cleanInlineComments(importStatement: string): string {
     return importStatement;
   }
 
+  // Cas spécial pour les imports de module (side effect)
+  if (importStatement.trim().startsWith('import ') && 
+      !importStatement.includes('from') && 
+      importStatement.trim().endsWith(';')) {
+    return importStatement;
+  }
+
   // Diviser l'import en lignes
   const lines = importStatement.split('\n');
   
@@ -61,7 +68,7 @@ function cleanInlineComments(importStatement: string): string {
     }
   }
   
-  // Nettoyer chaque ligne individuellement (l'approche originale)
+  // Nettoyer chaque ligne individuellement
   const cleanedLines = lines.map(line => {
     // Si la ligne contient un commentaire en ligne
     if (line.includes('//')) {
@@ -83,12 +90,42 @@ function cleanInlineComments(importStatement: string): string {
   // Rejoindre les lignes en préservant les sauts de ligne
   const result = cleanedLines.join('\n');
 
-  // S'assurer que l'import est valide en vérifiant la présence des accolades et du point-virgule
-  if (!result.includes('{') || !result.includes('}') || !result.endsWith(';')) {
-    throw new Error('Import section contains incomplete import statements');
+  // Validation adaptée aux différents types d'imports
+  const trimmedResult = result.trim();
+  
+  // Import de module (side effect)
+  if (trimmedResult.startsWith('import ') && 
+      trimmedResult.includes('\'') && 
+      !trimmedResult.includes('from') && 
+      trimmedResult.endsWith(';')) {
+    return result;
+  }
+  
+  // Import par défaut sans imports nommés
+  if (trimmedResult.startsWith('import ') && 
+      !trimmedResult.includes('{') && 
+      trimmedResult.includes(' from ') && 
+      trimmedResult.endsWith(';')) {
+    return result;
+  }
+  
+  // Import nommé
+  if (trimmedResult.startsWith('import ') && 
+      trimmedResult.includes('{') && 
+      trimmedResult.includes('}') && 
+      trimmedResult.includes(' from ') && 
+      trimmedResult.endsWith(';')) {
+    return result;
+  }
+  
+  // Import de type
+  if (trimmedResult.startsWith('import type ') && 
+      trimmedResult.includes(' from ') && 
+      trimmedResult.endsWith(';')) {
+    return result;
   }
 
-  return result;
+  throw new Error('Import section contains incomplete import statements: ' + trimmedResult);
 }
 
 /**
@@ -100,7 +137,12 @@ export function adaptParserOutput(
 ): FormattedImport[] {
   // Vérifier s'il y a des imports invalides
   if (parserOutput.invalidImports && parserOutput.invalidImports.length > 0) {
-    throw new Error(`Imports invalides détectés : ${parserOutput.invalidImports.map(imp => imp.error).join(', ')}`);
+    // Au lieu de lancer une erreur, on log les imports invalides
+    console.warn(`Imports invalides détectés : ${parserOutput.invalidImports.map(imp => imp.error).join(', ')}`);
+    // On peut aussi logger les imports invalides eux-mêmes
+    for (const invalidImport of parserOutput.invalidImports) {
+      console.warn(`Import invalide: ${invalidImport.raw}`);
+    }
   }
 
   const formattedImports: FormattedImport[] = [];
@@ -114,51 +156,67 @@ export function adaptParserOutput(
 
     // Parcourir tous les imports du groupe
     for (const importItem of group.imports) {
-      // Déterminer le type d'import
-      const isDefaultImport = importItem.type === 'default';
-      const isNamedImport = importItem.type === 'named';
-      const isTypeImport = importItem.type === 'typeDefault' || importItem.type === 'typeNamed';
+      try {
+        // Déterminer le type d'import
+        const isDefaultImport = importItem.type === 'default';
+        const isNamedImport = importItem.type === 'named';
+        const isTypeImport = importItem.type === 'typeDefault' || importItem.type === 'typeNamed';
+        const isSideEffect = importItem.type === 'sideEffect';
 
-      // Gérer les imports de type
-      if (isTypeImport) {
-        if (!typeImportsByModule.has(importItem.source)) {
-          typeImportsByModule.set(importItem.source, new Set());
+        // Gérer les imports de type
+        if (isTypeImport) {
+          if (!typeImportsByModule.has(importItem.source)) {
+            typeImportsByModule.set(importItem.source, new Set());
+          }
+          const typeNames = typeImportsByModule.get(importItem.source)!;
+          importItem.specifiers.forEach(name => typeNames.add(name));
+          continue;
         }
-        const typeNames = typeImportsByModule.get(importItem.source)!;
-        importItem.specifiers.forEach(name => typeNames.add(name));
-        continue;
+
+        // Créer l'objet FormattedImport pour les imports non-type
+        const formattedImport: FormattedImport = {
+          statement: cleanInlineComments(importItem.raw),
+          group: matchingGroup,
+          moduleName: importItem.source,
+          importNames: importItem.specifiers,
+          isTypeImport: false,
+          isDefaultImport,
+          hasNamedImports: isNamedImport || (isDefaultImport && importItem.specifiers.length > 1)
+        };
+
+        // Si c'est un import de module (side effect), s'assurer que hasNamedImports est false
+        if (isSideEffect) {
+          formattedImport.isDefaultImport = false;
+          formattedImport.hasNamedImports = false;
+        }
+
+        formattedImports.push(formattedImport);
+      } catch (error) {
+        // Si un import spécifique échoue, on le log et on continue
+        console.warn(`Erreur lors du traitement de l'import: ${importItem.raw}`, error);
       }
-
-      // Créer l'objet FormattedImport pour les imports non-type
-      const formattedImport: FormattedImport = {
-        statement: cleanInlineComments(importItem.raw),
-        group: matchingGroup,
-        moduleName: importItem.source,
-        importNames: importItem.specifiers,
-        isTypeImport: false,
-        isDefaultImport,
-        hasNamedImports: isNamedImport || (isDefaultImport && importItem.specifiers.length > 1)
-      };
-
-      formattedImports.push(formattedImport);
     }
   }
 
   // Ajouter les imports de type fusionnés
   for (const [moduleName, typeNames] of typeImportsByModule.entries()) {
-    const typeNamesArray = Array.from(typeNames);
-    const formattedImport: FormattedImport = {
-      statement: `import type { ${typeNamesArray.join(', ')} } from '${moduleName}';`,
-      group: formattedImports.find(i => i.moduleName === moduleName)?.group || 
-             { name: 'Misc', regex: /.*/, order: 999 },
-      moduleName,
-      importNames: typeNamesArray,
-      isTypeImport: true,
-      isDefaultImport: false,
-      hasNamedImports: true
-    };
+    try {
+      const typeNamesArray = Array.from(typeNames);
+      const formattedImport: FormattedImport = {
+        statement: `import type { ${typeNamesArray.join(', ')} } from '${moduleName}';`,
+        group: formattedImports.find(i => i.moduleName === moduleName)?.group || 
+              { name: 'Misc', regex: /.*/, order: 999 },
+        moduleName,
+        importNames: typeNamesArray,
+        isTypeImport: true,
+        isDefaultImport: false,
+        hasNamedImports: true
+      };
 
-    formattedImports.push(formattedImport);
+      formattedImports.push(formattedImport);
+    } catch (error) {
+      console.warn(`Erreur lors du traitement des imports de type pour le module: ${moduleName}`, error);
+    }
   }
 
   return formattedImports;

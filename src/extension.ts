@@ -60,7 +60,7 @@ export function activate(context: vscode.ExtensionContext): void {
       try {
         // Utiliser le nouveau parser pour analyser les imports
         const parserResult = parser.parse(documentText) as ImportParserResult;
-        console.log('🚀 ~ extension.ts:94 ~ parserResult:', JSON.stringify(parserResult, null, 2));
+        console.log('[PARSER]',JSON.stringify(parserResult, null, 2));
         
         // Formater les imports en utilisant le résultat du parser
         const formattedDocument = formatImports(documentText, configManager.getFormatterConfig(), parserResult);

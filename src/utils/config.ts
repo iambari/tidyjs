@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { FormatterConfig, ImportGroup } from '../types';
+import { FormatterConfig, ImportGroup, TypeOrder } from '../types';
 
 export interface ConfigChangeEvent {
   configKey: string;
@@ -8,7 +8,7 @@ export interface ConfigChangeEvent {
 
 const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
   importGroups: [
-    { name: 'Misc', regex: /^(react|react-.*|lodash|date-fns|classnames|@fortawesome|@reach|uuid|@tanstack|ag-grid-community|framer-motion)$/, order: 0 },
+    { name: 'Misc', regex: /^(react|react-.*|lodash|date-fns|classnames|@fortawesome|@reach|uuid|@tanstack|ag-grid-community|framer-motion)$/, order: 0, isDefault: true },
     { name: 'DS', regex: /^ds$/, order: 1 },
     { name: '@core', regex: /^@core/, order: 3 },
     { name: '@library', regex: /^@library/, order: 4 },
@@ -17,6 +17,15 @@ const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
   alignmentSpacing: 1,
   maxLineLength: 150,
   formatOnSave: false,
+  defaultGroupName: 'Misc',
+  typeOrder: {
+    sideEffect: 0,
+    default: 1,
+    named: 2,
+    typeDefault: 3,
+    typeNamed: 4
+  },
+  priorityImports: [/^react$/],
   regexPatterns: (() => {
     const patterns = {
       importLine: /^\s*import\s+.*?(?:from\s+['"][^'"]+['"])?\s*;?.*$/gm,
@@ -102,7 +111,8 @@ class ConfigManager {
       this.appSubfolders.set(subfolder, {
         name,
         regex,
-        order
+        order,
+        isDefault: false
       });
     }
   }
@@ -110,12 +120,13 @@ class ConfigManager {
   public loadConfiguration(): void {
     const vsConfig = vscode.workspace.getConfiguration('tidyimport');
 
-    const customGroups = vsConfig.get<Array<{ name: string; regex: string; order: number }>>('groups');
+    const customGroups = vsConfig.get<Array<{ name: string; regex: string; order: number; isDefault?: boolean }>>('groups');
     if (customGroups && customGroups.length > 0) {
       this.config.importGroups = customGroups.map((group) => ({
         name: group.name,
         regex: new RegExp(group.regex),
         order: group.order,
+        isDefault: group.isDefault || group.name === this.config.defaultGroupName
       }));
       this.eventEmitter.fire({ configKey: 'importGroups', newValue: this.config.importGroups });
     }
@@ -137,6 +148,24 @@ class ConfigManager {
       this.config.maxLineLength = maxLineLength;
       this.eventEmitter.fire({ configKey: 'maxLineLength', newValue: maxLineLength });
     }
+
+    const defaultGroupName = vsConfig.get<string>('defaultGroupName');
+    if (defaultGroupName) {
+      this.config.defaultGroupName = defaultGroupName;
+      this.eventEmitter.fire({ configKey: 'defaultGroupName', newValue: defaultGroupName });
+    }
+
+    const typeOrder = vsConfig.get<TypeOrder>('typeOrder');
+    if (typeOrder) {
+      this.config.typeOrder = typeOrder;
+      this.eventEmitter.fire({ configKey: 'typeOrder', newValue: typeOrder });
+    }
+
+    const priorityImportsPatterns = vsConfig.get<string[]>('priorityImports');
+    if (priorityImportsPatterns && priorityImportsPatterns.length > 0) {
+      this.config.priorityImports = priorityImportsPatterns.map(pattern => new RegExp(pattern));
+      this.eventEmitter.fire({ configKey: 'priorityImports', newValue: this.config.priorityImports });
+    }
   }
 
   public getFormatOnSave(): boolean {
@@ -149,7 +178,10 @@ class ConfigManager {
       alignmentSpacing: this.getAlignmentSpacing(),
       regexPatterns: this.getRegexPatterns(),
       maxLineLength: this.config.maxLineLength,
-      formatOnSave: this.config.formatOnSave
+      formatOnSave: this.config.formatOnSave,
+      defaultGroupName: this.config.defaultGroupName || 'Misc',
+      typeOrder: this.config.typeOrder,
+      priorityImports: this.config.priorityImports
     };
   }
 }

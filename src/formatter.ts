@@ -1,11 +1,8 @@
 import { FormatterConfig, FormattedImportGroup } from './types';
-import { isEmptyLine, isCommentLine } from './utils/misc';
+import { isEmptyLine, isCommentLine, logError, showMessage } from './utils/misc';
 import { logDebug } from './utils/log';
 import { ParsedImport, ParserResult } from 'tidyimport-parser';
 
-/**
- * Aligne le mot-clé 'from' dans un import sur une ligne
- */
 function alignFromKeyword(line: string, fromIndex: number, maxFromIndex: number): string {
     if (fromIndex <= 0 || line.indexOf('from') === -1) {
         return line;
@@ -14,23 +11,18 @@ function alignFromKeyword(line: string, fromIndex: number, maxFromIndex: number)
     const beforeFrom = line.substring(0, fromIndex);
     const afterFrom = line.substring(fromIndex);
     
-    // Calculer l'espacement nécessaire pour aligner exactement avec maxFromIndex
     const paddingSize = maxFromIndex - fromIndex;
     const padding = ' '.repeat(paddingSize);
 
     return beforeFrom + padding + afterFrom;
 }
 
-/**
- * Aligne le mot-clé 'from' dans un import multiligne
- */
 function alignMultilineFromKeyword(line: string, fromIndex: number, maxFromIndex: number): string {
     const lines = line.split('\n');
     if (lines.length < 2) {
         return line;
     }
     
-    // La dernière ligne contient le mot-clé 'from'
     const lastLineIndex = lines.length - 1;
     const lastLine = lines[lastLineIndex];
     
@@ -39,11 +31,9 @@ function alignMultilineFromKeyword(line: string, fromIndex: number, maxFromIndex
         return line;
     }
     
-    // Trouver le contenu avant "from" (en éliminant les espaces existants)
     const closeBraceIndex = lastLine.indexOf('}');
     if (closeBraceIndex === -1) return line;
     
-    // Créer une nouvelle version de la dernière ligne avec un alignement précis
     const beforeContent = lastLine.substring(0, closeBraceIndex + 1);
     const exactSpaces = maxFromIndex - (closeBraceIndex + 1);
     const fromAndAfter = lastLine.substring(fromIndexInLastLine);
@@ -54,26 +44,19 @@ function alignMultilineFromKeyword(line: string, fromIndex: number, maxFromIndex
     return lines.join('\n');
 }
 
-/**
- * Aligne tous les mots-clés 'from' dans un groupe d'imports en utilisant l'indice le plus à droite
- */
 function alignImportsInGroup(importLines: string[]): string[] {
     if (importLines.length === 0) {
         return importLines;
     }
     
-    // Calculer les indices "from" pour tous les imports
     const fromIndices = new Map<string, number>();
     
-    // Première passe : calculer la position idéale du "from" pour chaque import
     let globalMaxFromPosition = 0;
     
     for (const line of importLines) {
         if (line.includes('\n')) {
-            // Pour les imports multilignes
             const lines = line.split('\n');
             
-            // Calculer le spécificateur le plus long
             let longestSpecifier = 0;
             let longestSpecifierIndex = -1;
             
@@ -87,10 +70,8 @@ function alignImportsInGroup(importLines: string[]): string[] {
                 }
             }
             
-            // Position de base: indentation (4 espaces) + longueur du spécificateur le plus long + 1 espace
             let idealFromPosition = 4 + longestSpecifier + 1;
             
-            // Si le spécificateur le plus long n'est pas le dernier (donc a une virgule), ajouter un espace
             const lastSpecifierIndex = lines.length - 2;
             if (longestSpecifierIndex !== lastSpecifierIndex && longestSpecifierIndex !== -1) {
                 idealFromPosition += 1;
@@ -98,14 +79,12 @@ function alignImportsInGroup(importLines: string[]): string[] {
             
             globalMaxFromPosition = Math.max(globalMaxFromPosition, idealFromPosition);
             
-            // Enregistrer la position actuelle du "from" pour l'alignement final
             const lastLine = lines[lines.length - 1];
             const fromIndex = lastLine.indexOf('from');
             if (fromIndex !== -1) {
                 fromIndices.set(line, fromIndex);
             }
         } else {
-            // Pour les imports sur une ligne
             const importParts = line.split('from');
             if (importParts.length === 2) {
                 const beforeFrom = importParts[0].trim();
@@ -116,7 +95,6 @@ function alignImportsInGroup(importLines: string[]): string[] {
         }
     }
     
-    // Deuxième passe : aligner tous les imports sur la position globale maximale
     return importLines.map(line => {
         const fromIndex = fromIndices.get(line);
         
@@ -125,29 +103,23 @@ function alignImportsInGroup(importLines: string[]): string[] {
         }
         
         if (!line.includes('\n')) {
-            // Import sur une ligne
             return alignFromKeyword(line, fromIndex, globalMaxFromPosition);
         } else {
-            // Import multiligne
             return alignMultilineFromKeyword(line, fromIndex, globalMaxFromPosition);
         }
     });
 }
-/**
- * Nettoie les lignes pour éviter les commentaires dupliqués et les lignes vides consécutives
- */
+
 function cleanUpLines(lines: string[]): string[] {
     const cleanedLines: string[] = [];
     let previousLine = '';
     let consecutiveEmptyLines = 0;
 
     for (const currentLine of lines) {
-        // Ne pas ajouter de commentaires identiques à la suite
         if (isCommentLine(currentLine) && previousLine === currentLine) {
             continue;
         }
 
-        // Gérer les lignes vides
         if (isEmptyLine(currentLine)) {
             consecutiveEmptyLines++;
             if (consecutiveEmptyLines > 1) {
@@ -161,76 +133,58 @@ function cleanUpLines(lines: string[]): string[] {
         previousLine = currentLine;
     }
 
-    // Supprimer la dernière ligne vide si elle existe
     if (cleanedLines.length > 0 && isEmptyLine(cleanedLines[cleanedLines.length - 1])) {
         cleanedLines.pop();
     }
 
-    // Ajouter deux lignes vides finales pour séparer les imports du reste du code
     cleanedLines.push('');
     cleanedLines.push('');
 
     return cleanedLines;
 }
 
-/**
- * Formate un import selon les règles de formatage (multiligne si plusieurs spécificateurs)
- */
 function formatImportLine(importItem: ParsedImport): string {
     const { type, source, specifiers, raw } = importItem;
 
-    // Pour les imports de type side-effect ou sans spécificateurs
     if (type === 'sideEffect' || specifiers.length === 0) {
         return `import '${source}';`;
     }
 
-    // Pour les imports par défaut sans imports nommés
     if (type === 'default' && specifiers.length === 1) {
         return `import ${specifiers[0]} from '${source}';`;
     }
 
-    // Pour les imports de type par défaut
     if (type === 'typeDefault' && specifiers.length === 1) {
         return `import type ${specifiers[0]} from '${source}';`;
     }
 
-    // Pour les imports nommés avec un seul spécificateur
     if ((type === 'named' || type === 'typeNamed') && specifiers.length === 1) {
         const typePrefix = type === 'typeNamed' ? 'type ' : '';
         return `import ${typePrefix}{ ${specifiers[0]} } from '${source}';`;
     }
 
-    // Pour les imports nommés avec plusieurs spécificateurs (toujours format multiligne)
     if ((type === 'named' || type === 'typeNamed') && specifiers.length > 1) {
         const typePrefix = type === 'typeNamed' ? 'type ' : '';
-        // Trier les spécificateurs par ordre alphabétique pour plus de cohérence
         const sortedSpecifiers = [...specifiers].sort((a, b) => a.localeCompare(b));
         return `import ${typePrefix}{\n    ${sortedSpecifiers.join(',\n    ')}\n} from '${source}';`;
     }
 
-    // Cas par défaut : retourner l'import brut
     return raw;
 }
 
-/**
- * Regroupe les imports par module et type
- */
 function groupImportsByModuleAndType(imports: ParsedImport[]): Map<string, Map<string, ParsedImport>> {
     const groupedByModule = new Map<string, Map<string, ParsedImport>>();
     
     for (const importItem of imports) {
-        // Créer un objet pour ce module s'il n'existe pas encore
         if (!groupedByModule.has(importItem.source)) {
             groupedByModule.set(importItem.source, new Map<string, ParsedImport>());
         }
         
         const moduleImports = groupedByModule.get(importItem.source)!;
         
-        // Regrouper par type d'import (default, named, type, etc.)
         if (!moduleImports.has(importItem.type)) {
             moduleImports.set(importItem.type, { ...importItem, specifiers: [...importItem.specifiers] });
         } else {
-            // Fusionner les spécificateurs pour les imports du même type
             const existingImport = moduleImports.get(importItem.type)!;
             const mergedSpecifiers = new Set([...existingImport.specifiers, ...importItem.specifiers]);
             existingImport.specifiers = Array.from(mergedSpecifiers);
@@ -240,66 +194,45 @@ function groupImportsByModuleAndType(imports: ParsedImport[]): Map<string, Map<s
     return groupedByModule;
 }
 
-/**
- * Formate les imports en respectant les groupes et l'ordre fournis par le parser
- */
 export function formatImportsFromParser(
     sourceText: string,
     importRange: { start: number; end: number },
     parserResult: ParserResult,
 ): string {
-    // Si aucun import trouvé, retourner le texte original
     if (importRange.start === importRange.end || !parserResult.groups.length) {
         return sourceText;
     }
 
-    const formattedGroups: FormattedImportGroup[] = [];
-    
-    // Traiter chaque groupe d'imports (trier par ordre pour respecter la configuration)
-    const sortedGroups = [...parserResult.groups].sort((a, b) => a.order - b.order);
-    
-    for (const group of sortedGroups) {
-        if (!group.imports.length) continue;
+    try {
+        const formattedGroups: FormattedImportGroup[] = [];
         
-        const groupResult: FormattedImportGroup = {
-            groupName: group.name,
-            commentLine: `// ${group.name}`,
-            importLines: []
-        };
+        const currentImportText = sourceText.substring(importRange.start, importRange.end);
         
-        // Trier les imports dans le groupe: d'abord par isPriority, puis par module, puis par type
-        const sortedImports = [...group.imports].sort((a, b) => {
-            // 1. D'abord par isPriority (les imports prioritaires en premier)
-            if (a.isPriority && !b.isPriority) return -1;
-            if (!a.isPriority && b.isPriority) return 1;
+        if (currentImportText.includes('import(') || 
+            currentImportText.includes('React.lazy') ||
+            /await\s+import/.test(currentImportText)) {
+            throw new Error("Des imports dynamiques ont été détectés dans la section d'imports statiques");
+        }
+        
+        const sortedGroups = [...parserResult.groups].sort((a, b) => a.order - b.order);
+        
+        for (const group of sortedGroups) {
+            if (!group.imports.length) continue;
             
-            // 2. Ensuite par module (ordre alphabétique)
-            if (a.source !== b.source) {
-                return a.source.localeCompare(b.source);
-            }
-            
-            // 3. Enfin par type
-            const typeOrder = {
-                'sideEffect': 0,
-                'default': 1,
-                'named': 2,
-                'typeDefault': 3,
-                'typeNamed': 4
+            const groupResult: FormattedImportGroup = {
+                groupName: group.name,
+                commentLine: `// ${group.name}`,
+                importLines: []
             };
             
-            return (typeOrder[a.type as keyof typeof typeOrder] || 999) - 
-                   (typeOrder[b.type as keyof typeof typeOrder] || 999);
-        });
-        
-        // Regrouper les imports par module et type pour éviter les doublons
-        const groupedImports = groupImportsByModuleAndType(sortedImports);
-        
-        // Formater les imports module par module
-        for (const [_, moduleImports] of groupedImports) {
-            const moduleImportsArray = Array.from(moduleImports.values());
-            
-            // Trier par type
-            moduleImportsArray.sort((a, b) => {
+            const sortedImports = [...group.imports].sort((a, b) => {
+                if (a.isPriority && !b.isPriority) return -1;
+                if (!a.isPriority && b.isPriority) return 1;
+                
+                if (a.source !== b.source) {
+                    return a.source.localeCompare(b.source);
+                }
+                
                 const typeOrder = {
                     'sideEffect': 0,
                     'default': 1,
@@ -312,163 +245,182 @@ export function formatImportsFromParser(
                        (typeOrder[b.type as keyof typeof typeOrder] || 999);
             });
             
-            // Formater chaque import
-            for (const importItem of moduleImportsArray) {
-                const formattedImport = formatImportLine(importItem);
-                groupResult.importLines.push(formattedImport);
+            const groupedImports = groupImportsByModuleAndType(sortedImports);
+            
+            for (const [_, moduleImports] of groupedImports) {
+                const moduleImportsArray = Array.from(moduleImports.values());
+                
+                moduleImportsArray.sort((a, b) => {
+                    const typeOrder = {
+                        'sideEffect': 0,
+                        'default': 1,
+                        'named': 2,
+                        'typeDefault': 3,
+                        'typeNamed': 4
+                    };
+                    
+                    return (typeOrder[a.type as keyof typeof typeOrder] || 999) - 
+                           (typeOrder[b.type as keyof typeof typeOrder] || 999);
+                });
+                
+                for (const importItem of moduleImportsArray) {
+                    const formattedImport = formatImportLine(importItem);
+                    groupResult.importLines.push(formattedImport);
+                }
             }
+            
+            formattedGroups.push(groupResult);
         }
         
-        formattedGroups.push(groupResult);
-    }
-    
-    // Générer le texte formaté
-    const formattedLines: string[] = [];
-    
-    for (const group of formattedGroups) {
-        // Ajouter le commentaire de groupe
-        formattedLines.push(group.commentLine);
+        const formattedLines: string[] = [];
         
-        // Aligner les imports dans le groupe avec un alignement parfait des 'from'
-        const alignedImports = alignImportsInGroup(group.importLines);
-        formattedLines.push(...alignedImports);
+        for (const group of formattedGroups) {
+            formattedLines.push(group.commentLine);
+            
+            const alignedImports = alignImportsInGroup(group.importLines);
+            formattedLines.push(...alignedImports);
+            
+            formattedLines.push('');
+        }
         
-        // Ajouter une ligne vide après chaque groupe
-        formattedLines.push('');
+        const cleanedLines = cleanUpLines(formattedLines);
+        const formattedText = cleanedLines.join('\n');
+        
+        return (
+            sourceText.substring(0, importRange.start) +
+            formattedText +
+            sourceText.substring(importRange.end)
+        );
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logDebug(`Erreur lors du formatage des imports: ${errorMessage}`);
+        return sourceText;
     }
-    
-    // Nettoyer les lignes (supprimer les lignes vides consécutives, etc.)
-    const cleanedLines = cleanUpLines(formattedLines);
-    const formattedText = cleanedLines.join('\n');
-    
-    // Remplacer la section d'imports dans le texte original
-    return (
-        sourceText.substring(0, importRange.start) +
-        formattedText +
-        sourceText.substring(importRange.end)
-    );
 }
 
-/**
- * Trouve la plage des imports dans le texte source
- */
-function findImportsRange(text: string): { start: number; end: number } {
-    // Regex pour trouver les lignes d'import
-    const importRegex = /^import\s+.+?;|^\/\/\s*[\w\s@/]+$/gm;
-
-    let firstStart = text.length;
-    let lastEnd = 0;
-    let match;
-
-    // Trouver tous les imports et commentaires de section
-    while ((match = importRegex.exec(text)) !== null) {
-        firstStart = Math.min(firstStart, match.index);
-        lastEnd = Math.max(lastEnd, match.index + match[0].length);
-    }
-
-    // Si aucun import n'est trouvé, retourner une plage vide
-    if (firstStart === text.length) {
-        return { start: 0, end: 0 };
-    }
-
-    // Rechercher plus loin pour les imports multilignes
+function findImportsRange(text: string): { start: number; end: number } | null {
     const lines = text.split('\n');
     let startLine = -1;
     let endLine = -1;
     let inMultilineImport = false;
+    let foundNonImportCode = false;
+    let foundDynamicImport = false;
+    let dynamicImportLine = -1;
+    
+    const dynamicImportRegex = /(?:await\s+)?import\s*\(|React\.lazy\s*\(\s*\(\s*\)\s*=>\s*import/;
     
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
+        const lineWithoutComment = line.split('//')[0].trim();
         
-        // Détecter le début d'un import
-        if (line.startsWith('import ')) {
+        if (line === '' || line.startsWith('//')) {
+            continue;
+        }
+        
+        if (lineWithoutComment.startsWith('import ')) {
             if (startLine === -1) {
                 startLine = i;
             }
             
-            // Vérifier si c'est un import multiligne
-            if (line.includes('{') && !line.includes('}') && !line.endsWith(';')) {
+            if (foundNonImportCode) {
+                logDebug(`Code non-import trouvé avant un import à la ligne ${i+1}`);
+                return null;
+            }
+            
+            if (lineWithoutComment.includes('{') && !lineWithoutComment.includes('}') && !lineWithoutComment.endsWith(';')) {
                 inMultilineImport = true;
-            } else if (line.endsWith(';')) {
+            } else if (lineWithoutComment.endsWith(';')) {
                 endLine = i;
                 inMultilineImport = false;
             }
         }
-        // Pour les lignes d'un import multiligne
         else if (inMultilineImport) {
-            if (line.includes('}') && line.endsWith(';')) {
+            if (lineWithoutComment.includes('}') && lineWithoutComment.endsWith(';')) {
                 endLine = i;
                 inMultilineImport = false;
             }
         }
-        // Pour les commentaires de section
-        else if (line.startsWith('//')) {
-            if (startLine === -1) {
-                startLine = i;
+        else if (dynamicImportRegex.test(lineWithoutComment)) {
+            foundDynamicImport = true;
+            dynamicImportLine = i + 1;
+            
+            if (startLine !== -1) {
+                logDebug(`Import dynamique trouvé à la ligne ${i+1} au milieu des imports statiques`);
+                return null;
             }
-            endLine = i;
+            
+            foundNonImportCode = true;
         }
-        // Si on a déjà trouvé des imports et qu'on rencontre une ligne non-import
-        else if (startLine !== -1 && !line.trim() && !inMultilineImport) {
-            // Ne rien faire, ignorer les lignes vides
-        }
-        // Si on rencontre du code après avoir trouvé des imports
-        else if (startLine !== -1 && line.trim() && !inMultilineImport) {
-            break;
+        else if (lineWithoutComment && !lineWithoutComment.startsWith('export')) {
+            if (startLine !== -1 && !foundNonImportCode) {
+                foundNonImportCode = true;
+                break;
+            }
+            
+            foundNonImportCode = true;
         }
     }
     
-    // Calculer les positions de début et de fin
-    if (startLine !== -1 && endLine !== -1) {
-        const startPos = lines.slice(0, startLine).join('\n').length + (startLine > 0 ? 1 : 0);
-        const endPos = lines.slice(0, endLine + 1).join('\n').length;
-        
-        // Ajuster en fonction de ce qu'on a trouvé précédemment
-        firstStart = Math.min(firstStart, startPos);
-        lastEnd = Math.max(lastEnd, endPos);
+    if (foundDynamicImport && startLine !== -1) {
+        logDebug(`Mélange d'imports dynamiques (ligne ${dynamicImportLine}) et statiques (commençant ligne ${startLine+1})`);
+        return null;
     }
-
-    // Ajuster la fin pour inclure les lignes vides suivantes
-    const remainingText = text.substring(lastEnd);
+    
+    if (startLine === -1) {
+        return { start: 0, end: 0 };
+    }
+    
+    const startPos = lines.slice(0, startLine).join('\n').length + (startLine > 0 ? 1 : 0);
+    const endPos = lines.slice(0, endLine + 1).join('\n').length;
+    
+    const remainingText = text.substring(endPos);
     const remainingLines = remainingText.split('\n');
     let additionalLines = 0;
     
     for (const line of remainingLines) {
         if (line.trim() === '') {
-            additionalLines += line.length + 1; // +1 pour le saut de ligne
+            additionalLines += line.length + 1;
         } else {
             break;
         }
     }
-
+    
     return { 
-        start: firstStart, 
-        end: lastEnd + additionalLines 
+        start: startPos, 
+        end: endPos + additionalLines 
     };
 }
 
-/**
- * Point d'entrée principal pour le formatage des imports
- */
 export function formatImports(
     sourceText: string, 
     config: FormatterConfig,
     parserResult?: ParserResult
-): string {
-    // Trouver la plage des imports dans le texte source
+): { text: string; error?: string } {
     const importRange = findImportsRange(sourceText);
     
-    // Si aucun import n'est trouvé, retourner le texte original
-    if (importRange.start === importRange.end) {
-        return sourceText;
+    if (importRange === null) {
+        return {
+            text: sourceText,
+            error: 'Dynamic imports or non-import code was detected among static imports.'
+        };
     }
     
-    // Si aucun résultat de parser n'est fourni, retourner le texte original
+    if (importRange.start === importRange.end) {
+        return { text: sourceText };
+    }
+    
     if (!parserResult) {
         logDebug('Aucun résultat de parser fourni, impossible de formater les imports');
-        return sourceText;
+        return { text: sourceText };
     }
     
-    // Formater les imports
-    return formatImportsFromParser(sourceText, importRange, parserResult);
+    try {
+        const formattedText = formatImportsFromParser(sourceText, importRange, parserResult);
+        return { text: formattedText };
+    } catch (error: unknown) {
+        const errorMessage = (error as Error).message;
+        showMessage.error(`Une erreur est survenue lors du formatage des imports: ${errorMessage}`);
+        logError(`Une erreur est survenue lors du formatage des imports: ${errorMessage}`);
+        return { text: sourceText, error: errorMessage };
+    }
 }

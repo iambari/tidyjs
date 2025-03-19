@@ -1,32 +1,31 @@
-import * as vscode from 'vscode';
+import { window, workspace, commands, Range } from 'vscode';
+import type { ExtensionContext } from 'vscode';
 import { formatImports } from './formatter';
 import { ImportParser, ParserResult } from 'tidyimport-parser';
 import { configManager } from './utils/config';
 import { logDebug, logError } from './utils/log';
+import { showMessage } from './utils/misc';
 
-// Initialiser le parser avec la configuration
 let parser = new ImportParser(configManager.getParserConfig());
 
-export function activate(context: vscode.ExtensionContext): void {
+export function activate(context: ExtensionContext): void {
   configManager.loadConfiguration();
 
-  vscode.workspace.onDidChangeConfiguration((event) => {
+  workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration('tidyimport')) {
       configManager.loadConfiguration();
-      // Recréer le parser avec la nouvelle configuration
       parser = new ImportParser(configManager.getParserConfig());
     }
   });
 
-  // Récupérer la configuration pour le formatage
   configManager.getFormatterConfig();
 
-  const formatImportsCommand = vscode.commands.registerCommand(
+  const formatImportsCommand = commands.registerCommand(
     'extension.formatImports',
     async () => {
-      const editor = vscode.window.activeTextEditor;
+      const editor = window.activeTextEditor;
       if (!editor) {
-        vscode.window.showErrorMessage('No active editor found');
+        showMessage.warning('No active editor found');
         return;
       }
 
@@ -34,32 +33,35 @@ export function activate(context: vscode.ExtensionContext): void {
       const documentText = document.getText();
 
       try {
-        // Utiliser le parser pour analyser les imports
         const parserResult = parser.parse(documentText) as ParserResult;
         console.log(`[Parser] ${JSON.stringify(parserResult, null, 2)}`);
         logDebug('Parser result:', JSON.stringify(parserResult, null, 2));
         
-        // Formater les imports en utilisant le résultat du parser
         const formattedDocument = formatImports(
           documentText, 
           configManager.getFormatterConfig(), 
           parserResult
         );
 
-        if (formattedDocument !== documentText) {
-          const fullDocumentRange = new vscode.Range(
+        if (formattedDocument.error) {
+          showMessage.error(formattedDocument.error);
+          return;
+        }
+
+        if (formattedDocument.text !== documentText) {
+          const fullDocumentRange = new Range(
             document.positionAt(0),
             document.positionAt(documentText.length)
           );
 
           await editor.edit((editBuilder) => {
-            editBuilder.replace(fullDocumentRange, formattedDocument);
+            editBuilder.replace(fullDocumentRange, formattedDocument.text);
           }).then((success) => {
             if (success) {
               logDebug('Successfully formatted imports in document');
-              vscode.window.showInformationMessage('Imports formatted successfully!');
+              showMessage.info('Imports formatted successfully!');
             } else {
-              vscode.window.showErrorMessage('Failed to format imports in document');
+              showMessage.warning('Failed to format imports in document');
             }
           });
         } else {
@@ -68,7 +70,7 @@ export function activate(context: vscode.ExtensionContext): void {
       } catch (error) {
         logError('Error:', error);
         const errorMessage = String(error);
-        vscode.window.showErrorMessage(`Error formatting imports: ${errorMessage}`);
+        showMessage.error(`Error formatting imports: ${errorMessage}`);
       }
     }
   );

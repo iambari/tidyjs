@@ -1,3 +1,5 @@
+import { window } from 'vscode';
+
 /**
  * Vérifie si une ligne est vide (ne contient que des espaces)
  */
@@ -93,3 +95,39 @@ export function logDebug(...args: any[]): void {
 export function logError(...args: any[]): void {
     console.error('[ERROR]', ...args);
 }
+
+
+/**
+ * Fonction d'affichage d'un message showInformationMessage ou showErrorMessage (I want to use it like showMessage.error or showMessage.info)
+ */
+/**
+ * Fonction d'affichage d'un message showInformationMessage ou showErrorMessage (I want to use it like showMessage.error or showMessage.info)
+ */
+export const showMessage = {
+    /**
+     * Affiche un message d'information
+     * @param message Le message à afficher
+     * @param items Les options à afficher (optionnel)
+     */
+    info: (message: string, ...items: string[]) => {
+        return window.showInformationMessage(message, ...items);
+    },
+
+    /**
+     * Affiche un message d'erreur
+     * @param message Le message à afficher
+     * @param items Les options à afficher (optionnel)
+     */
+    error: (message: string, ...items: string[]) => {
+        return window.showErrorMessage(message, ...items);
+    },
+
+    /**
+     * Affiche un message d'avertissement
+     * @param message Le message à afficher
+     * @param items Les options à afficher (optionnel)
+     */
+    warning: (message: string, ...items: string[]) => {
+        return window.showWarningMessage(message, ...items);
+    }
+};

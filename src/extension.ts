@@ -59,6 +59,7 @@ export function activate(context: vscode.ExtensionContext): void {
       try {
         // Utiliser le parser pour analyser les imports
         const parserResult = parser.parse(documentText) as ParserResult;
+        console.log(`[Parser] ${JSON.stringify(parserResult, null, 2)}`);
         logDebug('Parser result:', JSON.stringify(parserResult, null, 2));
         
         // Formater les imports en utilisant le résultat du parser

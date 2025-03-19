@@ -4,39 +4,49 @@ import { logDebug } from './utils/log';
 import { ParsedImport, ParserResult } from 'tidyimport-parser';
 
 /**
- * Aligne les imports pour que les mots-clés 'from' soient alignés
+ * Aligne le mot-clé 'from' dans un import sur une ligne
  */
-function alignFromKeyword(line: string, fromIndex: number, maxFromIndex: number, config: FormatterConfig): string {
+function alignFromKeyword(line: string, fromIndex: number, maxFromIndex: number): string {
     if (fromIndex <= 0 || line.indexOf('from') === -1) {
         return line;
     }
 
     const beforeFrom = line.substring(0, fromIndex);
     const afterFrom = line.substring(fromIndex);
-    const paddingSize = maxFromIndex - fromIndex + config.alignmentSpacing;
+    
+    // Calculer l'espacement nécessaire pour aligner exactement avec maxFromIndex
+    const paddingSize = maxFromIndex - fromIndex;
     const padding = ' '.repeat(paddingSize);
 
     return beforeFrom + padding + afterFrom;
 }
 
 /**
- * Trouve l'index du mot-clé 'from' dans une ligne d'import
+ * Aligne le mot-clé 'from' dans un import multiligne
  */
-function getFromIndex(line: string, isMultiline: boolean): number {
-    if (isMultiline) {
-        // Pour les imports multilignes, chercher 'from' sur la dernière ligne
-        const lines = line.split('\n');
-        const lastLine = lines[lines.length - 1];
-        const fromIndex = lastLine.indexOf('from');
-        if (fromIndex !== -1) {
-            // Calculer l'index global en ajoutant la longueur des lignes précédentes
-            return lines.slice(0, lines.length - 1).join('\n').length + fromIndex + 1;
-        }
-        return -1;
+function alignMultilineFromKeyword(line: string, fromIndex: number, maxFromIndex: number): string {
+    const lines = line.split('\n');
+    if (lines.length < 2) {
+        return line;
     }
-
-    // Pour les imports simples, trouver directement l'index
-    return line.indexOf('from');
+    
+    // La dernière ligne contient le mot-clé 'from'
+    const lastLineIndex = lines.length - 1;
+    const lastLine = lines[lastLineIndex];
+    
+    const fromIndexInLastLine = lastLine.indexOf('from');
+    if (fromIndexInLastLine === -1) {
+        return line;
+    }
+    
+    // Calculer l'espacement nécessaire pour un alignement parfait
+    const paddingSize = maxFromIndex - fromIndexInLastLine;
+    const newLastLine = lastLine.substring(0, fromIndexInLastLine) + ' '.repeat(paddingSize) + lastLine.substring(fromIndexInLastLine);
+    
+    // Remplacer la dernière ligne par la version alignée
+    lines[lastLineIndex] = newLastLine;
+    
+    return lines.join('\n');
 }
 
 /**
@@ -79,30 +89,56 @@ function cleanUpLines(lines: string[]): string[] {
 }
 
 /**
- * Aligne les imports d'un groupe
+ * Aligne tous les mots-clés 'from' dans un groupe d'imports en utilisant l'indice le plus à droite
  */
-function alignImportsInGroup(importLines: string[], config: FormatterConfig): string[] {
-    // Optimisation: Calculer les indices "from" en une seule passe
+function alignImportsInGroup(importLines: string[]): string[] {
+    if (importLines.length === 0) {
+        return importLines;
+    }
+    
+    // Calculer les indices "from" pour tous les imports
     const fromIndices = new Map<string, number>();
-    let maxWidth = 0;
+    let maxRightPosition = 0;
     
     for (const line of importLines) {
-        const isMultiline = line.includes('\n');
-        const fromIndex = getFromIndex(line, isMultiline);
+        let fromPosition;
         
-        if (fromIndex > 0) {
-            fromIndices.set(line, fromIndex);
-            maxWidth = Math.max(maxWidth, fromIndex);
+        if (line.includes('\n')) {
+            // Pour les imports multilignes
+            const lines = line.split('\n');
+            const lastLine = lines[lines.length - 1];
+            const fromIndex = lastLine.indexOf('from');
+            
+            if (fromIndex !== -1) {
+                // Calculer la position absolue du "from" dans la dernière ligne
+                fromPosition = fromIndex;
+            }
+        } else {
+            // Pour les imports sur une ligne
+            fromPosition = line.indexOf('from');
+        }
+        
+        if (fromPosition !== undefined && fromPosition > 0) {
+            fromIndices.set(line, fromPosition);
+            maxRightPosition = Math.max(maxRightPosition, fromPosition);
         }
     }
-
-    // Aligner tous les "from" du groupe en utilisant la configuration
-    return importLines.map((line) => {
+    
+    // Aligner tous les imports sur la position la plus à droite
+    return importLines.map(line => {
         const fromIndex = fromIndices.get(line);
-        if (fromIndex !== undefined && !line.includes('\n')) {
-            return alignFromKeyword(line, fromIndex, maxWidth, config);
+        
+        if (fromIndex === undefined) {
+            return line;
         }
-        return line;
+        
+        if (!line.includes('\n')) {
+            // Import sur une ligne
+            return alignFromKeyword(line, fromIndex, maxRightPosition);
+        } else {
+            // Import multiligne
+            return alignMultilineFromKeyword(line, fromIndex, maxRightPosition);
+        }
     });
 }
 
@@ -122,7 +158,7 @@ function formatImportLine(importItem: ParsedImport): string {
         return `import ${specifiers[0]} from '${source}';`;
     }
 
-    // Pour les imports de type
+    // Pour les imports de type par défaut
     if (type === 'typeDefault' && specifiers.length === 1) {
         return `import type ${specifiers[0]} from '${source}';`;
     }
@@ -133,14 +169,44 @@ function formatImportLine(importItem: ParsedImport): string {
         return `import ${typePrefix}{ ${specifiers[0]} } from '${source}';`;
     }
 
-    // Pour les imports nommés avec plusieurs spécificateurs (format multiligne)
+    // Pour les imports nommés avec plusieurs spécificateurs (toujours format multiligne)
     if ((type === 'named' || type === 'typeNamed') && specifiers.length > 1) {
         const typePrefix = type === 'typeNamed' ? 'type ' : '';
-        return `import ${typePrefix}{\n    ${specifiers.join(',\n    ')}\n} from '${source}';`;
+        // Trier les spécificateurs par ordre alphabétique pour plus de cohérence
+        const sortedSpecifiers = [...specifiers].sort((a, b) => a.localeCompare(b));
+        return `import ${typePrefix}{\n    ${sortedSpecifiers.join(',\n    ')}\n} from '${source}';`;
     }
 
     // Cas par défaut : retourner l'import brut
     return raw;
+}
+
+/**
+ * Regroupe les imports par module et type
+ */
+function groupImportsByModuleAndType(imports: ParsedImport[]): Map<string, Map<string, ParsedImport>> {
+    const groupedByModule = new Map<string, Map<string, ParsedImport>>();
+    
+    for (const importItem of imports) {
+        // Créer un objet pour ce module s'il n'existe pas encore
+        if (!groupedByModule.has(importItem.source)) {
+            groupedByModule.set(importItem.source, new Map<string, ParsedImport>());
+        }
+        
+        const moduleImports = groupedByModule.get(importItem.source)!;
+        
+        // Regrouper par type d'import (default, named, type, etc.)
+        if (!moduleImports.has(importItem.type)) {
+            moduleImports.set(importItem.type, { ...importItem, specifiers: [...importItem.specifiers] });
+        } else {
+            // Fusionner les spécificateurs pour les imports du même type
+            const existingImport = moduleImports.get(importItem.type)!;
+            const mergedSpecifiers = new Set([...existingImport.specifiers, ...importItem.specifiers]);
+            existingImport.specifiers = Array.from(mergedSpecifiers);
+        }
+    }
+    
+    return groupedByModule;
 }
 
 /**
@@ -150,7 +216,6 @@ export function formatImportsFromParser(
     sourceText: string,
     importRange: { start: number; end: number },
     parserResult: ParserResult,
-    config: FormatterConfig
 ): string {
     // Si aucun import trouvé, retourner le texte original
     if (importRange.start === importRange.end || !parserResult.groups.length) {
@@ -171,13 +236,18 @@ export function formatImportsFromParser(
             importLines: []
         };
         
-        // Trier les imports dans le groupe: d'abord par isPriority, puis par type
+        // Trier les imports dans le groupe: d'abord par isPriority, puis par module, puis par type
         const sortedImports = [...group.imports].sort((a, b) => {
             // 1. D'abord par isPriority (les imports prioritaires en premier)
             if (a.isPriority && !b.isPriority) return -1;
             if (!a.isPriority && b.isPriority) return 1;
             
-            // 2. Ensuite par type (side-effect, default, named, type)
+            // 2. Ensuite par module (ordre alphabétique)
+            if (a.source !== b.source) {
+                return a.source.localeCompare(b.source);
+            }
+            
+            // 3. Enfin par type
             const typeOrder = {
                 'sideEffect': 0,
                 'default': 1,
@@ -190,32 +260,32 @@ export function formatImportsFromParser(
                    (typeOrder[b.type as keyof typeof typeOrder] || 999);
         });
         
-        // Dédupliquer les imports pour éviter les doublons
-        const uniqueImportsBySource = new Map<string, ParsedImport>();
+        // Regrouper les imports par module et type pour éviter les doublons
+        const groupedImports = groupImportsByModuleAndType(sortedImports);
         
-        for (const importItem of sortedImports) {
-            const key = `${importItem.source}_${importItem.type}`;
+        // Formater les imports module par module
+        for (const [_, moduleImports] of groupedImports) {
+            const moduleImportsArray = Array.from(moduleImports.values());
             
-            if (!uniqueImportsBySource.has(key)) {
-                uniqueImportsBySource.set(key, { ...importItem });
-            } else {
-                // Si on a déjà un import pour cette source et ce type, fusionner les spécificateurs
-                const existingImport = uniqueImportsBySource.get(key)!;
+            // Trier par type
+            moduleImportsArray.sort((a, b) => {
+                const typeOrder = {
+                    'sideEffect': 0,
+                    'default': 1,
+                    'named': 2,
+                    'typeDefault': 3,
+                    'typeNamed': 4
+                };
                 
-                // Assurer que les spécificateurs sont uniques
-                const uniqueSpecifiers = new Set([
-                    ...existingImport.specifiers,
-                    ...importItem.specifiers
-                ]);
-                
-                existingImport.specifiers = Array.from(uniqueSpecifiers);
+                return (typeOrder[a.type as keyof typeof typeOrder] || 999) - 
+                       (typeOrder[b.type as keyof typeof typeOrder] || 999);
+            });
+            
+            // Formater chaque import
+            for (const importItem of moduleImportsArray) {
+                const formattedImport = formatImportLine(importItem);
+                groupResult.importLines.push(formattedImport);
             }
-        }
-        
-        // Formater les imports selon les règles (multiligne pour plusieurs spécificateurs)
-        for (const importItem of uniqueImportsBySource.values()) {
-            const formattedImport = formatImportLine(importItem);
-            groupResult.importLines.push(formattedImport);
         }
         
         formattedGroups.push(groupResult);
@@ -228,8 +298,8 @@ export function formatImportsFromParser(
         // Ajouter le commentaire de groupe
         formattedLines.push(group.commentLine);
         
-        // Aligner les imports dans le groupe (mais pas les multilignes)
-        const alignedImports = alignImportsInGroup(group.importLines, config);
+        // Aligner les imports dans le groupe avec un alignement parfait des 'from'
+        const alignedImports = alignImportsInGroup(group.importLines);
         formattedLines.push(...alignedImports);
         
         // Ajouter une ligne vide après chaque groupe
@@ -369,5 +439,5 @@ export function formatImports(
     }
     
     // Formater les imports
-    return formatImportsFromParser(sourceText, importRange, parserResult, config);
+    return formatImportsFromParser(sourceText, importRange, parserResult);
 }

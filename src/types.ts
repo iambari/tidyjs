@@ -27,12 +27,7 @@ export interface FormatterConfig {
     typeOrder?: TypeOrder;
     priorityImports?: RegExp[];
     regexPatterns: {
-        importLine: RegExp;
         sectionComment: RegExp;
-        importFragment: RegExp;
-        anyComment: RegExp;
-        typeDeclaration: RegExp;
-        codeDeclaration: RegExp;
         appSubfolderPattern: RegExp;
     };
 }
@@ -53,11 +48,6 @@ export interface FormattedImportGroup {
 }
 
 
-export interface ImportNameWithComment {
-    name: string;
-    comment?: string;
-}
-
 export interface ParsedImport {
     type: ImportType;
     source: ImportSource;
@@ -68,18 +58,6 @@ export interface ParsedImport {
     appSubfolder: string | null;
 }
 
-export interface FormattedImport {
-    statement: string;
-    group: ImportGroup;
-    moduleName: string;
-    importNames: string[];
-    isTypeImport: boolean;
-    isDefaultImport: boolean;
-    hasNamedImports: boolean;
-    type?: ImportType;
-    isPriority?: boolean;
-    appSubfolder?: string | null;
-}
 
 export interface InvalidImport {
     raw: string;

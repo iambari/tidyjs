@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 
 const OUTPUT_CHANNEL = vscode.window.createOutputChannel('Import Formatter');
-const DEBUG_MODE = () => process.env.VSCODE_DEBUG_MODE === 'true';
-console.log('🚀 ~ log.ts:5 ~ DEBUG_MODE:', DEBUG_MODE);
+// const DEBUG_MODE = () => process.env.VSCODE_DEBUG_MODE === 'true';
+const DEBUG_MODE = true;
 
 export function logDebug(message: string, ...args: unknown[]): void {
   if (!DEBUG_MODE) {

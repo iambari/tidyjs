@@ -13,14 +13,10 @@ Le parser est responsable de l'analyse des imports et de leur organisation en gr
 
 #### 1.1.2 Ordre à l'intérieur des groupes
 - L'ordre exact des imports dans un groupe est :
-  1. Imports React par défaut (ex: `import React from 'react';`)
-  2. Imports React nommés (ex: `import { useState } from 'react';`)
-  3. Imports React de type par défaut (ex: `import type Test from 'react';`)
-  4. Imports React de type nommés (ex: `import type { Test } from 'react';`)
-  5. Autres imports par défaut, triés alphabétiquement
-  6. Autres imports nommés, triés alphabétiquement
-  7. Autres imports de type par défaut, triés alphabétiquement
-  8. Autres imports de type nommés, triés alphabétiquement
+  1. Autres imports par défaut, triés alphabétiquement
+  2. Autres imports nommés, triés alphabétiquement
+  3. Autres imports de type par défaut, triés alphabétiquement
+  4. Autres imports de type nommés, triés alphabétiquement
 
 #### 1.1.3 Hiérarchie des types d'imports
 - La hiérarchie précise des imports est :
@@ -175,11 +171,12 @@ Input:
 // Misc
 import {
     useRef,
+    useMemo,
     useState,
     useEffect,
     useCallback,
     Fragment,
-    useMemo
+    FragmentUse,
 }                           from 'react';
 import cn                   from 'classnames';
 import {

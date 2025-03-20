@@ -187,49 +187,18 @@ function formatImportLine(importItem: ParsedImport): string {
 
     if ((type === 'named' || type === 'typeNamed') && specifiers.length > 1) {
         const typePrefix = type === 'typeNamed' ? 'type ' : '';
-        const sortedSpecifiers = [...specifiers].sort((a, b) => a.localeCompare(b));
+        const sortedSpecifiers = [...specifiers].sort((a, b) => a.length - b.length);
         return `import ${typePrefix}{\n    ${sortedSpecifiers.join(',\n    ')}\n} from '${source}';`;
     }
 
     return raw;
 }
 
-function groupImportsByModuleAndType(imports: ParsedImport[]): Map<string, Map<string, ParsedImport>> {
-    const groupedByModule = new Map<string, Map<string, ParsedImport>>();
-    
-    const processedImportKeys = new Set<string>();
-    
-    for (const importItem of imports) {
-        const importKey = `${importItem.type}:${importItem.source}:${importItem.specifiers.sort().join(',')}`;
-        
-        if (processedImportKeys.has(importKey)) {
-            continue;
-        }
-        
-        processedImportKeys.add(importKey);
-        
-        if (!groupedByModule.has(importItem.source)) {
-            groupedByModule.set(importItem.source, new Map<string, ParsedImport>());
-        }
-        
-        const moduleImports = groupedByModule.get(importItem.source)!;
-        
-        if (!moduleImports.has(importItem.type)) {
-            moduleImports.set(importItem.type, { ...importItem, specifiers: [...importItem.specifiers] });
-        } else {
-            const existingImport = moduleImports.get(importItem.type)!;
-            const mergedSpecifiers = new Set([...existingImport.specifiers, ...importItem.specifiers]);
-            existingImport.specifiers = Array.from(mergedSpecifiers);
-        }
-    }
-    
-    return groupedByModule;
-}
-
 export function formatImportsFromParser(
     sourceText: string,
     importRange: { start: number; end: number },
     parserResult: ParserResult,
+    config: FormatterConfig,
 ): string {
     if (importRange.start === importRange.end || !parserResult.groups.length) {
         return sourceText;
@@ -280,8 +249,6 @@ export function formatImportsFromParser(
         
         const formattedGroups: FormattedImportGroup[] = [];
         
-        const processedImports = new Set<string>();
-        
         for (const [groupName, imports] of importsByGroupName.entries()) {
             if (!imports.length) continue;
             
@@ -291,55 +258,87 @@ export function formatImportsFromParser(
                 importLines: []
             };
             
+            // Définir l'ordre des types d'imports
+            const typeOrder = config.typeOrder || {
+                'default': 0,
+                'named': 1,
+                'typeDefault': 2,
+                'typeNamed': 3,
+                'sideEffect': 4
+            };
+            
+            // Trier les imports en respectant l'ordre des types et la priorité
             const sortedImports = [...imports].sort((a, b) => {
+                // Cas spécial pour React: on trie d'abord par type
+                if (a.source === 'react' && b.source === 'react') {
+                    const typeOrderA = typeOrder[a.type as keyof typeof typeOrder] || 999;
+                    const typeOrderB = typeOrder[b.type as keyof typeof typeOrder] || 999;
+                    return typeOrderA - typeOrderB;
+                }
+                
+                // Si l'un des imports est prioritaire mais pas l'autre
                 if (a.isPriority && !b.isPriority) return -1;
                 if (!a.isPriority && b.isPriority) return 1;
                 
+                // Si les sources sont différentes
                 if (a.source !== b.source) {
                     return a.source.localeCompare(b.source);
                 }
                 
-                const typeOrder = {
-                    'sideEffect': 0,
-                    'default': 1,
-                    'named': 2,
-                    'typeDefault': 3,
-                    'typeNamed': 4
-                };
-                
-                return (typeOrder[a.type as keyof typeof typeOrder] || 999) - 
-                       (typeOrder[b.type as keyof typeof typeOrder] || 999);
+                // Si même source (autre que react), on trie par type
+                const typeOrderA = typeOrder[a.type as keyof typeof typeOrder] || 999;
+                const typeOrderB = typeOrder[b.type as keyof typeof typeOrder] || 999;
+                return typeOrderA - typeOrderB;
             });
             
-            const groupedImports = groupImportsByModuleAndType(sortedImports);
+            // Regrouper les imports par type et source pour éviter les doublons
+            const processedImportKeys = new Set<string>();
             
-            for (const [_, moduleImports] of groupedImports) {
-                const moduleImportsArray = Array.from(moduleImports.values());
+            // Traitement spécial pour React: on les trie manuellement selon typeOrder
+            const reactImports: ParsedImport[] = [];
+            const otherImports: ParsedImport[] = [];
+            
+            for (const importItem of sortedImports) {
+                const importKey = `${importItem.type}:${importItem.source}:${importItem.specifiers.sort().join(',')}`;
                 
-                moduleImportsArray.sort((a, b) => {
-                    const typeOrder = {
-                        'sideEffect': 0,
-                        'default': 1,
-                        'named': 2,
-                        'typeDefault': 3,
-                        'typeNamed': 4
-                    };
-                    
-                    return (typeOrder[a.type as keyof typeof typeOrder] || 999) - 
-                           (typeOrder[b.type as keyof typeof typeOrder] || 999);
-                });
-                
-                for (const importItem of moduleImportsArray) {
-                    const importKey = `${importItem.type}:${importItem.source}:${importItem.specifiers.sort().join(',')}`;
-                    
-                    if (processedImports.has(importKey)) {
-                        continue;
-                    }
-                    
-                    const formattedImport = formatImportLine(importItem);
-                    groupResult.importLines.push(formattedImport);
-                    processedImports.add(importKey);
+                if (processedImportKeys.has(importKey)) {
+                    continue;
                 }
+                
+                processedImportKeys.add(importKey);
+                
+                if (importItem.source === 'react') {
+                    reactImports.push(importItem);
+                } else {
+                    otherImports.push(importItem);
+                }
+            }
+            
+            // Forcer l'ordre des imports React selon leur type
+            const reactDefaultImports = reactImports.filter(imp => imp.type === 'default');
+            const reactNamedImports = reactImports.filter(imp => imp.type === 'named');
+            const reactTypeDefaultImports = reactImports.filter(imp => imp.type === 'typeDefault');
+            const reactTypeNamedImports = reactImports.filter(imp => imp.type === 'typeNamed');
+            const reactSideEffectImports = reactImports.filter(imp => imp.type === 'sideEffect');
+            
+            const orderedReactImports = [
+                ...reactDefaultImports,
+                ...reactNamedImports,
+                ...reactTypeDefaultImports,
+                ...reactTypeNamedImports,
+                ...reactSideEffectImports
+            ];
+            
+            // Ajouter d'abord les imports React triés
+            for (const importItem of orderedReactImports) {
+                const formattedImport = formatImportLine(importItem);
+                groupResult.importLines.push(formattedImport);
+            }
+            
+            // Puis ajouter les autres imports
+            for (const importItem of otherImports) {
+                const formattedImport = formatImportLine(importItem);
+                groupResult.importLines.push(formattedImport);
             }
             
             if (groupResult.importLines.length > 0) {
@@ -516,7 +515,7 @@ export function formatImports(
     }
     
     try {
-        const formattedText = formatImportsFromParser(sourceText, importRange, parserResult);
+        const formattedText = formatImportsFromParser(sourceText, importRange, parserResult, config);
         return { text: formattedText };
     } catch (error: unknown) {
         const errorMessage = (error as Error).message;

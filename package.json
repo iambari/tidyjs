@@ -1,7 +1,7 @@
 {
   "name": "tidyimport",
-  "displayName": "tidyimport",
-  "description": "TidyImport is a VSCode extension that automatically organizes and formats import declarations.",
+  "displayName": "Tidyimport",
+  "description": "Tidyimport is a VSCode extension that automatically organizes and formats import declarations.",
   "version": "1.0.8",
   "publisher": "Asmir",
   "license": "MIT",
@@ -95,16 +95,14 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run build-prod && npm run minify",
+    "vscode:prepublish": "npm run build-prod",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "build-prod": "npm run check-types && npm run lint && node esbuild.js --production",
-    "minify": "node terser-minify.js",
-    "generate:publish": "npm test && yes | vsce package --allow-missing-repository",
+    "package": "npm test && vsce package",
     "compile-tests": "tsc -p . --outDir out",
-    "package": "vsce package",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit --project tsconfig.json",

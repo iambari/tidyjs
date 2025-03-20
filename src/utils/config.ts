@@ -14,7 +14,6 @@ const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
     { name: '@library', regex: /^@library/, order: 4 },
     { name: 'Utils', regex: /^yutils/, order: 5 },
   ],
-  alignmentSpacing: 1,
   maxLineLength: 150,
   formatOnSave: false,
   defaultGroupName: 'Misc',
@@ -76,10 +75,6 @@ class ConfigManager {
     return sortedGroups;
   }
 
-  public getAlignmentSpacing(): number {
-    return this.config.alignmentSpacing;
-  }
-
   public getRegexPatterns(): FormatterConfig['regexPatterns'] {
     return this.config.regexPatterns;
   }
@@ -112,13 +107,6 @@ class ConfigManager {
       }));
       this.eventEmitter.fire({ configKey: 'importGroups', newValue: this.config.importGroups });
     }
-
-    const alignmentSpacing = vsConfig.get<number>('alignmentSpacing');
-    if (typeof alignmentSpacing === 'number' && alignmentSpacing >= 0) {
-      this.config.alignmentSpacing = alignmentSpacing;
-      this.eventEmitter.fire({ configKey: 'alignmentSpacing', newValue: alignmentSpacing });
-    }
-
     const formatOnSave = vsConfig.get<boolean>('formatOnSave');
     if (typeof formatOnSave === 'boolean') {
       this.config.formatOnSave = formatOnSave;
@@ -157,7 +145,6 @@ class ConfigManager {
   public getFormatterConfig(): FormatterConfig {
     return {
       importGroups: this.getImportGroups(),
-      alignmentSpacing: this.getAlignmentSpacing(),
       regexPatterns: this.getRegexPatterns(),
       maxLineLength: this.config.maxLineLength,
       formatOnSave: this.config.formatOnSave,

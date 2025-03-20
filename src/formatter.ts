@@ -117,10 +117,8 @@ function cleanUpLines(lines: string[]): string[] {
     let inMultilineComment = false;
 
     for (const currentLine of lines) {
-        // Normaliser la ligne pour la comparaison
         const normalizedLine = currentLine.trim();
         
-        // Gérer les commentaires multi-lignes
         if (normalizedLine.includes('/*')) {
             inMultilineComment = true;
         }
@@ -129,28 +127,22 @@ function cleanUpLines(lines: string[]): string[] {
             if (normalizedLine.includes('*/')) {
                 inMultilineComment = false;
             }
-            continue; // Ignorer la ligne
+            continue;
         }
         
-        // Vérifier si c'est un commentaire de groupe (commence par "// " suivi d'un nom de groupe)
         if (normalizedLine.startsWith('// ')) {
-            // Extraire le nom du groupe (ce qui suit "// ")
             const groupName = normalizedLine.substring(3).trim();
             
-            // Si nous avons déjà vu ce commentaire de groupe, l'ignorer
             if (seenGroupComments.has(groupName)) {
                 continue;
             }
             
-            // Sinon, l'enregistrer et le conserver
             seenGroupComments.add(groupName);
         }
-        // Ignorer tous les autres types de commentaires
         else if (normalizedLine.startsWith('//')) {
             continue;
         }
 
-        // Gérer les lignes vides
         if (isEmptyLine(currentLine)) {
             consecutiveEmptyLines++;
             if (consecutiveEmptyLines > 1) {
@@ -163,12 +155,10 @@ function cleanUpLines(lines: string[]): string[] {
         cleanedLines.push(currentLine);
     }
 
-    // Supprimer la dernière ligne vide si elle existe
     if (cleanedLines.length > 0 && isEmptyLine(cleanedLines[cleanedLines.length - 1])) {
         cleanedLines.pop();
     }
 
-    // Ajouter deux lignes vides à la fin
     cleanedLines.push('');
     cleanedLines.push('');
 
@@ -207,16 +197,13 @@ function formatImportLine(importItem: ParsedImport): string {
 function groupImportsByModuleAndType(imports: ParsedImport[]): Map<string, Map<string, ParsedImport>> {
     const groupedByModule = new Map<string, Map<string, ParsedImport>>();
     
-    // Ensemble pour suivre les imports déjà traités (pour éviter les doublons)
     const processedImportKeys = new Set<string>();
     
     for (const importItem of imports) {
-        // Créer une clé unique pour cet import basée sur source, type et specifiers
         const importKey = `${importItem.type}:${importItem.source}:${importItem.specifiers.sort().join(',')}`;
         
-        // Vérifier si cet import a déjà été traité
         if (processedImportKeys.has(importKey)) {
-            continue; // Ignorer les doublons d'imports
+            continue;
         }
         
         processedImportKeys.add(importKey);
@@ -249,17 +236,14 @@ export function formatImportsFromParser(
     }
 
     try {
-        // Extraire le texte courant de la section d'imports
         const currentImportText = sourceText.substring(importRange.start, importRange.end);
         
-        // Vérifier s'il y a des imports dynamiques
         if (currentImportText.includes('import(') || 
             currentImportText.includes('React.lazy') ||
             /await\s+import/.test(currentImportText)) {
             throw new Error('Dynamic imports detected in the static imports section');
         }
         
-        // Supprimer TOUS les commentaires, y compris les commentaires multi-lignes
         const currentLines = currentImportText.split('\n');
         const importsOnly: string[] = [];
         let inMultilineComment = false;
@@ -267,7 +251,6 @@ export function formatImportsFromParser(
         for (const line of currentLines) {
             const trimmedLine = line.trim();
             
-            // Gérer les commentaires multi-lignes
             if (trimmedLine.includes('/*')) {
                 inMultilineComment = true;
             }
@@ -276,35 +259,27 @@ export function formatImportsFromParser(
                 if (trimmedLine.includes('*/')) {
                     inMultilineComment = false;
                 }
-                continue; // Ignorer la ligne
             }
             
-            // Ignorer les commentaires sur une seule ligne
             if (trimmedLine.startsWith('//')) {
                 continue;
             }
             
-            // Garder les imports et les lignes vides
             importsOnly.push(line);
         }
         
-        // Utiliser une Map pour regrouper les imports par nom de groupe
         const importsByGroupName = new Map<string, ParsedImport[]>();
         
-        // Trier les groupes par ordre
         const sortedGroups = [...parserResult.groups].sort((a, b) => a.order - b.order);
         
-        // Regrouper tous les imports par nom de groupe
         for (const group of sortedGroups) {
             if (group.imports && group.imports.length) {
                 importsByGroupName.set(group.name, [...group.imports]);
             }
         }
         
-        // Formater les groupes d'imports
         const formattedGroups: FormattedImportGroup[] = [];
         
-        // Ensemble pour suivre les imports déjà traités (pour éviter les doublons)
         const processedImports = new Set<string>();
         
         for (const [groupName, imports] of importsByGroupName.entries()) {
@@ -316,7 +291,6 @@ export function formatImportsFromParser(
                 importLines: []
             };
             
-            // Trier les imports dans ce groupe
             const sortedImports = [...imports].sort((a, b) => {
                 if (a.isPriority && !b.isPriority) return -1;
                 if (!a.isPriority && b.isPriority) return 1;
@@ -337,10 +311,8 @@ export function formatImportsFromParser(
                        (typeOrder[b.type as keyof typeof typeOrder] || 999);
             });
             
-            // Grouper les imports par module et type, en dédupliquant
             const groupedImports = groupImportsByModuleAndType(sortedImports);
             
-            // Formater chaque import
             for (const [_, moduleImports] of groupedImports) {
                 const moduleImportsArray = Array.from(moduleImports.values());
                 
@@ -358,12 +330,10 @@ export function formatImportsFromParser(
                 });
                 
                 for (const importItem of moduleImportsArray) {
-                    // Créer une clé unique pour cet import basée sur source et specifiers
                     const importKey = `${importItem.type}:${importItem.source}:${importItem.specifiers.sort().join(',')}`;
                     
-                    // Vérifier si cet import a déjà été traité
                     if (processedImports.has(importKey)) {
-                        continue; // Ignorer les doublons d'imports
+                        continue;
                     }
                     
                     const formattedImport = formatImportLine(importItem);
@@ -372,32 +342,26 @@ export function formatImportsFromParser(
                 }
             }
             
-            // N'ajouter le groupe que s'il contient des imports
             if (groupResult.importLines.length > 0) {
                 formattedGroups.push(groupResult);
             }
         }
         
-        // Construire le texte formaté, avec un seul commentaire par groupe
         const formattedLines: string[] = [];
         const processedGroupNames = new Set<string>();
         
         for (const group of formattedGroups) {
-            // N'ajouter le commentaire de groupe que s'il n'a pas déjà été traité
             if (!processedGroupNames.has(group.groupName)) {
                 formattedLines.push(group.commentLine);
                 processedGroupNames.add(group.groupName);
             }
             
-            // Aligner les imports et les ajouter
             const alignedImports = alignImportsInGroup(group.importLines);
             formattedLines.push(...alignedImports);
             
-            // Ajouter une ligne vide après le groupe
             formattedLines.push('');
         }
         
-        // Nettoyer les lignes (supprimer les doublons de lignes vides, etc.)
         const cleanedLines = cleanUpLines(formattedLines);
         const formattedText = cleanedLines.join('\n');
         
@@ -428,7 +392,6 @@ function findImportsRange(text: string): { start: number; end: number } | null {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         
-        // Gérer les commentaires multi-lignes
         if (line.includes('/*')) {
             inMultilineComment = true;
         }
@@ -440,14 +403,12 @@ function findImportsRange(text: string): { start: number; end: number } | null {
             continue;
         }
         
-        // Ignorer les lignes vides et les commentaires sur une seule ligne
         if (line === '' || line.startsWith('//')) {
             continue;
         }
         
         const lineWithoutComment = line.split('//')[0].trim();
         
-        // Détecter les imports statiques
         if (lineWithoutComment.startsWith('import ')) {
             if (startLine === -1) {
                 startLine = i;
@@ -458,7 +419,6 @@ function findImportsRange(text: string): { start: number; end: number } | null {
                 return null;
             }
             
-            // Détecter les imports multilignes
             if (lineWithoutComment.includes('{') && !lineWithoutComment.includes('}') && !lineWithoutComment.endsWith(';')) {
                 inMultilineImport = true;
             } else if (lineWithoutComment.endsWith(';')) {
@@ -467,14 +427,12 @@ function findImportsRange(text: string): { start: number; end: number } | null {
             }
         }
         else if (inMultilineImport) {
-            // Continuer à suivre un import multiligne
             if (lineWithoutComment.includes('}') && lineWithoutComment.endsWith(';')) {
                 endLine = i;
                 inMultilineImport = false;
             }
         }
         else if (dynamicImportRegex.test(lineWithoutComment)) {
-            // Détecter les imports dynamiques
             foundDynamicImport = true;
             dynamicImportLine = i + 1;
             
@@ -486,7 +444,6 @@ function findImportsRange(text: string): { start: number; end: number } | null {
             foundNonImportCode = true;
         }
         else if (lineWithoutComment && !lineWithoutComment.startsWith('export')) {
-            // Détecter le code non-import
             if (startLine !== -1 && !foundNonImportCode) {
                 foundNonImportCode = true;
                 break;
@@ -496,18 +453,15 @@ function findImportsRange(text: string): { start: number; end: number } | null {
         }
     }
     
-    // Vérifier les mélanges d'imports dynamiques et statiques
     if (foundDynamicImport && startLine !== -1) {
         logDebug(`Mix of dynamic imports (line ${dynamicImportLine}) and static imports (starting line ${startLine+1})`);
         return null;
     }
     
-    // Si aucun import n'a été trouvé
     if (startLine === -1) {
         return { start: 0, end: 0 };
     }
     
-    // Reculer pour inclure les commentaires avant le premier import
     while (startLine > 0) {
         const prevLine = lines[startLine - 1].trim();
         if (prevLine === '' || prevLine.startsWith('//') || prevLine.includes('/*')) {
@@ -517,11 +471,9 @@ function findImportsRange(text: string): { start: number; end: number } | null {
         }
     }
     
-    // Calculer les positions de début et de fin
     const startPos = lines.slice(0, startLine).join('\n').length + (startLine > 0 ? 1 : 0);
     const endPos = lines.slice(0, endLine + 1).join('\n').length;
     
-    // Inclure les lignes vides après la dernière déclaration d'import
     const remainingText = text.substring(endPos);
     const remainingLines = remainingText.split('\n');
     let additionalLines = 0;

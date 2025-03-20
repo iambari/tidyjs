@@ -72,7 +72,6 @@ import { formatDate } from '@library/helpers';
   },
   // other groups...
 ],
-"tidyimport.alignmentSpacing": 0,
 "tidyimport.formatOnSave": false,
 "tidyimport.maxLineLength": 150
 ```

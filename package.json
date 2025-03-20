@@ -80,12 +80,6 @@
           ],
           "description": "Define import groups, their regex matchers, and ordering"
         },
-        "tidyimport.alignmentSpacing": {
-          "type": "number",
-          "default": 0,
-          "minimum": 0,
-          "description": "Number of spaces to add when aligning 'from' keywords in imports"
-        },
         "tidyimport.formatOnSave": {
           "type": "boolean",
           "default": false,

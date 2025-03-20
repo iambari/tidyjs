@@ -11,6 +11,7 @@ let parser = new ImportParser(configManager.getParserConfig());
 
 export function activate(context: ExtensionContext): void {
   configManager.loadConfiguration();
+  configManager.getFormatterConfig();
 
   workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration('tidyimport')) {
@@ -27,10 +28,6 @@ export function activate(context: ExtensionContext): void {
       }
     }
   });
-
-  context.subscriptions.push(formatOnSaveDisposable);
-
-  configManager.getFormatterConfig();
 
   const formatImportsCommand = commands.registerCommand(
     'extension.formatImports',
@@ -100,6 +97,7 @@ export function activate(context: ExtensionContext): void {
   );
 
   context.subscriptions.push(formatImportsCommand);
+  context.subscriptions.push(formatOnSaveDisposable);
 }
 
 function formatImportError(invalidImport: InvalidImport): string {

@@ -57,7 +57,6 @@ const mockVscode = {
               { name: 'DS', regex: '^ds$', order: 1 },
               { name: '@app', regex: '^@app$', order: 2 }
             ],
-            alignmentSpacing: 1
           }
         };
         
@@ -108,7 +107,6 @@ const createMockConfig = () => ({
     { name: '@library', regex: /^@library/, order: 4 },
     { name: 'Utils', regex: /^yutils/, order: 5 },
   ],
-  alignmentSpacing: 1,
   regexPatterns: {
     importLine: /^\s*import\s+.*?(?:from\s+['"][^'"]+['"])?\s*;?.*$/gm,
     sectionComment: /^\s*\/\/\s*(?:Misc|DS|@app(?:\/[a-zA-Z0-9_-]+)?|@core|@library|Utils|.*\b(?:misc|ds|dossier|client|notification|core|library|utils)\b.*)\s*$/gim,

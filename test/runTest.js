@@ -9,7 +9,6 @@ const {
 const Module = require('module');
 const originalRequire = Module.prototype.require;
 
-// Importer le parser depuis tidyimport-parser
 let ImportParser;
 try {
   ImportParser = require('tidyimport-parser').ImportParser;
@@ -27,10 +26,7 @@ function createMockParserResult(sourceText) {
   try {
     // Ne pas détecter les imports dynamiques ici, laisser le formateur le faire
     const mockConfig = createMockConfig();
-    
-    // Ajuster la configuration pour correspondre aux attentes des tests
-    mockConfig.alignmentSpacing = 10; // Augmenter l'espacement pour l'alignement
-    
+      
     const parserConfig = {
       importGroups: mockConfig.importGroups,
       defaultGroupName: 'Misc',

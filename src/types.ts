@@ -19,7 +19,6 @@ export type SourcePatterns = {
 };
 
 export interface FormatterConfig {
-    alignmentSpacing: number;
     importGroups: ImportGroup[];
     formatOnSave: boolean;
     maxLineLength: number;

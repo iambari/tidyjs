@@ -207,8 +207,7 @@ export function formatImportsFromParser(
     try {
         const currentImportText = sourceText.substring(importRange.start, importRange.end);
         
-        if (currentImportText.includes('import(') || 
-            currentImportText.includes('React.lazy') ||
+        if (currentImportText.includes('import(') ||
             /await\s+import/.test(currentImportText)) {
             throw new Error('Dynamic imports detected in the static imports section');
         }
@@ -274,8 +273,8 @@ export function formatImportsFromParser(
             const typeNamedImports: ParsedImport[] = [];
             const sideEffectImports: ParsedImport[] = [];
             
-            // Traitement spécial pour React
-            const reactImports: ParsedImport[] = [];
+            // Traitement spécial pour les imports prioritaires
+            const priorityImports: ParsedImport[] = [];
             
             // Regrouper les imports par type et source pour éviter les doublons
             const processedImportKeys = new Set<string>();
@@ -289,8 +288,8 @@ export function formatImportsFromParser(
                 
                 processedImportKeys.add(importKey);
                 
-                if (importItem.source === 'react') {
-                    reactImports.push(importItem);
+                if (importItem.isPriority) {
+                    priorityImports.push(importItem);
                 } else {
                     switch (importItem.type) {
                         case 'default':
@@ -321,19 +320,19 @@ export function formatImportsFromParser(
             typeNamedImports.sort(sortBySource);
             sideEffectImports.sort(sortBySource);
             
-            // Forcer l'ordre des imports React selon leur type
-            const reactDefaultImports = reactImports.filter(imp => imp.type === 'default');
-            const reactNamedImports = reactImports.filter(imp => imp.type === 'named');
-            const reactTypeDefaultImports = reactImports.filter(imp => imp.type === 'typeDefault');
-            const reactTypeNamedImports = reactImports.filter(imp => imp.type === 'typeNamed');
-            const reactSideEffectImports = reactImports.filter(imp => imp.type === 'sideEffect');
+            // Forcer l'ordre des imports prioritaires selon leur type
+            const priorityDefaultImports = priorityImports.filter(imp => imp.type === 'default');
+            const priorityNamedImports = priorityImports.filter(imp => imp.type === 'named');
+            const priorityTypeDefaultImports = priorityImports.filter(imp => imp.type === 'typeDefault');
+            const priorityTypeNamedImports = priorityImports.filter(imp => imp.type === 'typeNamed');
+            const prioritySideEffectImports = priorityImports.filter(imp => imp.type === 'sideEffect');
             
-            const orderedReactImports = [
-                ...reactDefaultImports,
-                ...reactNamedImports,
-                ...reactTypeDefaultImports,
-                ...reactTypeNamedImports,
-                ...reactSideEffectImports
+            const orderedPriorityImports = [
+                ...priorityDefaultImports,
+                ...priorityNamedImports,
+                ...priorityTypeDefaultImports,
+                ...priorityTypeNamedImports,
+                ...prioritySideEffectImports
             ];
             
             // Combiner tous les imports dans l'ordre défini par config.typeOrder
@@ -360,8 +359,8 @@ export function formatImportsFromParser(
                 }
             }
             
-            // Ajouter d'abord les imports React triés
-            for (const importItem of orderedReactImports) {
+            // Ajouter d'abord les imports prioritaires triés
+            for (const importItem of orderedPriorityImports) {
                 const formattedImport = formatImportLine(importItem);
                 groupResult.importLines.push(formattedImport);
             }
@@ -417,7 +416,7 @@ function findImportsRange(text: string): { start: number; end: number } | null {
     let foundDynamicImport = false;
     let dynamicImportLine = -1;
     
-    const dynamicImportRegex = /(?:await\s+)?import\s*\(|React\.lazy\s*\(\s*\(\s*\)\s*=>\s*import/;
+    const dynamicImportRegex = /(?:await\s+)?import\s*\(/;
     
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();

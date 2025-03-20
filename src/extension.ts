@@ -20,15 +20,6 @@ export function activate(context: ExtensionContext): void {
     }
   });
 
-  const formatOnSaveDisposable = workspace.onDidSaveTextDocument((document) => {
-    if (configManager.getFormatOnSave()) {
-      const editor = window.activeTextEditor;
-      if (editor && editor.document === document) {
-        commands.executeCommand('extension.formatImports');
-      }
-    }
-  });
-
   const formatImportsCommand = commands.registerCommand(
     'extension.formatImports',
     async () => {
@@ -95,6 +86,15 @@ export function activate(context: ExtensionContext): void {
       }
     }
   );
+
+  const formatOnSaveDisposable = workspace.onDidSaveTextDocument((document) => {
+    if (configManager.getFormatOnSave()) {
+      const editor = window.activeTextEditor;
+      if (editor && editor.document === document) {
+        commands.executeCommand('extension.formatImports');
+      }
+    }
+  });
 
   context.subscriptions.push(formatImportsCommand);
   context.subscriptions.push(formatOnSaveDisposable);

@@ -16,3 +16,5 @@ eslint.config.mjs
 esbuild.js
 bump.sh
 .DS_Store
+memory-bank
+documentation

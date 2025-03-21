@@ -1,7 +1,7 @@
 {
   "name": "tidyimport",
   "displayName": "Tidyimport",
-  "description": "Tidyimport is a VSCode extension that automatically organizes and formats import declarations.",
+  "description": "Automatically organizes and formats import declarations",
   "version": "1.0.8",
   "publisher": "Asmir",
   "license": "MIT",

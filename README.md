@@ -1,6 +1,6 @@
 <div align="center"><img src="./media/icon2.png" width="120" alt="Tidyimport Logo" />
   <h1 align="center">Tidyimport</h1>
-  <p align="center">Tidyimport is a VSCode extension that automatically organizes and formats import declarations in TypeScript and JavaScript files. It groups imports by customizable categories, perfectly aligns 'from' keywords, and intelligently sorts imports by type and length.</p>
+  <p align="center">Automatically organizes and formats import declarations in TypeScript and JavaScript files. It groups imports by customizable categories, perfectly aligns 'from' keywords, and intelligently sorts imports by type and length.</p>
 </div>
 
 ## Features

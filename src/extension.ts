@@ -1,11 +1,29 @@
-import { window, workspace, commands, Range } from 'vscode';
-import type { ExtensionContext } from 'vscode';
+// Misc
 import { formatImports } from './formatter';
-import { ImportParser, ParserResult } from 'tidyjs-parser';
 import { InvalidImport } from './types';
+
+// Utils
 import { configManager } from './utils/config';
-import { logDebug, logError } from './utils/log';
-import { showMessage } from './utils/misc';
+import {
+    logDebug,
+    logError
+}                        from './utils/log';
+import { showMessage }   from './utils/misc';
+
+// Core
+import {
+    ImportParser,
+    ParserResult
+}                 from 'tidyjs-parser';
+
+// VSCode
+import {
+    Range,
+    window,
+    commands,
+    workspace
+}                                from 'vscode';
+import type { ExtensionContext } from 'vscode';
 
 let parser = new ImportParser(configManager.getParserConfig());
 

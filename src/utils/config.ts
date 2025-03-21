@@ -1,5 +1,13 @@
-import * as vscode from 'vscode';
-import { FormatterConfig, ImportGroup, TypeOrder, ParserConfig } from '../types';
+// Misc
+import {
+    TypeOrder,
+    ImportGroup,
+    ParserConfig,
+    FormatterConfig
+}                   from '../types';
+
+// VSCode
+import vscode from 'vscode';
 
 export interface ConfigChangeEvent {
   configKey: string;

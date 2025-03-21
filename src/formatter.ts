@@ -1,7 +1,22 @@
-import { FormatterConfig, FormattedImportGroup } from './types';
-import { isEmptyLine, logError, showMessage } from './utils/misc';
+// Misc
+import {
+    FormatterConfig,
+    FormattedImportGroup
+}                        from './types';
+
+// Utils
 import { logDebug } from './utils/log';
-import { ParsedImport, ParserResult } from 'tidyjs-parser';
+import {
+    logError,
+    isEmptyLine,
+    showMessage
+}                   from './utils/misc';
+
+// Core
+import {
+    ParsedImport,
+    ParserResult
+}                 from 'tidyjs-parser';
 
 const fromKeywordRegex = /\bfrom\b/;
 const multilineCommentStartRegex = /\/\*/;

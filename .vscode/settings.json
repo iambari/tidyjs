@@ -23,4 +23,25 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "always"
   },
+  "tidyimport.groups": [
+    {
+      "name": "Misc",
+      "order": 0
+    },
+    {
+      "name": "Utils",
+      "regex": ".*utils.*",
+      "order": 1
+    },
+    {
+      "name": "Core",
+      "regex": "^tidyjs-parser$",
+      "order": 2
+    },
+    {
+      "name": "VSCode",
+      "regex": "^vscode$",
+      "order": 3
+    },
+  ]
 }

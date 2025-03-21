@@ -1,4 +1,5 @@
-import * as vscode from 'vscode';
+// VSCode
+import vscode from 'vscode';
 
 const OUTPUT_CHANNEL = vscode.window.createOutputChannel('Import Formatter');
 // const DEBUG_MODE = () => process.env.VSCODE_DEBUG_MODE === 'true';

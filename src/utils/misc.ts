@@ -1,3 +1,4 @@
+// VSCode
 import { window } from 'vscode';
 
 /**

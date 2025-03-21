@@ -5,10 +5,11 @@
 .vscode-test
 node_modules
 out
+src
 test
+*.config.js
 **/*.map
 **/*.ts
-!src/**/*.ts
 .gitignore
 tsconfig.json
 tsconfig.eslint.json

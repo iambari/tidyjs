@@ -2,7 +2,7 @@
   "name": "tidyimport",
   "displayName": "Tidyimport",
   "description": "Automatically organizes and formats import declarations",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "publisher": "Asmir",
   "license": "MIT",
   "icon": "media/icon.png",

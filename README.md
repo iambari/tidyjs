@@ -1,6 +1,6 @@
 <div align="center"><img src="https://i.imghippo.com/files/xHR6550fA.png" width="120" alt="TidyJS Logo" />
   <h1 align="center">TidyJS</h1>
-  <p align="center">Automatically organizes and formats import declarations in TypeScript and JavaScript files. It groups imports by customizable categories, perfectly aligns 'from' keywords, and intelligently sorts imports by type and length.</p>
+  <p align="center">Automatically organizes and formats import declarations in `TypeScript` and `JavaScript` files. It groups imports by customizable categories, perfectly aligns `from` keywords, and intelligently sorts imports by type and length.</p>
 </div>
 
 ## Features
@@ -78,7 +78,6 @@ import { formatDate } from '@library/helpers';
 
 ## Usage
 
-- Use VSCode's "Format Document" command (Alt+Shift+F)
 - Use the keyboard shortcut Ctrl+Shift+I (Cmd+Shift+I on macOS)
 - Use the "Format Imports" command from the command palette
 - Enable automatic formatting on save by setting `"tidyjs.formatOnSave": true` in your VSCode settings

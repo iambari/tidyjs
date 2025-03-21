@@ -11,9 +11,9 @@ const originalRequire = Module.prototype.require;
 
 let ImportParser;
 try {
-  ImportParser = require('tidyimport-parser').ImportParser;
+  ImportParser = require('tidyjs-parser').ImportParser;
 } catch (error) {
-  console.error(`${COLORS.RED}${EMOJI.ERROR} // ERROR: Error during tidyimport-parser import: ${error.message}${COLORS.RESET}`);
+  console.error(`${COLORS.RED}${EMOJI.ERROR} // ERROR: Error during tidyjs-parser import: ${error.message}${COLORS.RESET}`);
   process.exit(1);
 }
 

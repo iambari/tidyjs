@@ -1,7 +1,7 @@
 import { window, workspace, commands, Range } from 'vscode';
 import type { ExtensionContext } from 'vscode';
 import { formatImports } from './formatter';
-import { ImportParser, ParserResult } from 'tidyimport-parser';
+import { ImportParser, ParserResult } from 'tidyjs-parser';
 import { InvalidImport } from './types';
 import { configManager } from './utils/config';
 import { logDebug, logError } from './utils/log';
@@ -15,7 +15,7 @@ export function activate(context: ExtensionContext): void {
     configManager.getFormatterConfig();
 
     workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration('tidyimport')) {
+      if (event.affectsConfiguration('tidyjs')) {
         configManager.loadConfiguration();
         parser = new ImportParser(configManager.getParserConfig());
       }

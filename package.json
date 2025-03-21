@@ -1,6 +1,6 @@
 {
-  "name": "tidyimport",
-  "displayName": "Tidyimport",
+  "name": "tidyjs",
+  "displayName": "TidyJS",
   "description": "Automatically organizes and formats import declarations",
   "version": "1.1.2",
   "publisher": "Asmir",
@@ -8,7 +8,7 @@
   "icon": "media/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/asmirbe/tidyimport"
+    "url": "https://github.com/asmirbe/tidyjs"
   },
   "author": {
     "name": "Asmir"
@@ -42,9 +42,9 @@
       }
     ],
     "configuration": {
-      "title": "TidyImport",
+      "title": "TidyJS",
       "properties": {
-        "tidyimport.groups": {
+        "tidyjs.groups": {
           "type": "array",
           "default": [
             {
@@ -80,12 +80,12 @@
           ],
           "description": "Define import groups, their regex matchers, and ordering"
         },
-        "tidyimport.formatOnSave": {
+        "tidyjs.formatOnSave": {
           "type": "boolean",
           "default": false,
           "description": "Automatically format imports when saving a file"
         },
-        "tidyimport.maxLineLength": {
+        "tidyjs.maxLineLength": {
           "type": "number",
           "default": 150,
           "minimum": 80,
@@ -141,6 +141,6 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "tidyimport-parser": "github:asmirbe/tidyimport-parser"
+    "tidyjs-parser": "github:asmirbe/tidyjs-parser"
   }
 }

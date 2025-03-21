@@ -95,7 +95,7 @@ class ConfigManager {
   }
 
   public loadConfiguration(): void {
-    const vsConfig = vscode.workspace.getConfiguration('tidyimport');
+    const vsConfig = vscode.workspace.getConfiguration('tidyjs');
 
     const customGroups = vsConfig.get<Array<{ name: string; regex: string; order: number; isDefault?: boolean }>>('groups');
     if (customGroups && customGroups.length > 0) {

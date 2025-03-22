@@ -90,6 +90,11 @@
           "default": 150,
           "minimum": 80,
           "description": "Maximum line length for import statements. Imports exceeding this length will be split into multiple lines."
+        },
+        "tidyjs.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug mode to show detailed logging information in the Output panel"
         }
       }
     }
@@ -112,7 +117,8 @@
     "bump:patch": "sh ./bump.sh patch",
     "bump:minor": "sh ./bump.sh minor",
     "bump:major": "sh ./bump.sh major",
-    "test": "node ./test/runTest.js"
+    "test": "node ./test/runTest.js",
+    "sync": "sh ./sync.sh"
   },
   "devDependencies": {
     "@babel/generator": "^7.26.10",
@@ -141,6 +147,6 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "tidyjs-parser": "github:asmirbe/tidyjs-parser"
+    "tidyjs-parser": "github:asmirbe/tidyjs-parser#main"
   }
 }

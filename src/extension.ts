@@ -53,7 +53,6 @@ export function activate(context: ExtensionContext): void {
 
         try {
           const parserResult = parser.parse(documentText) as ParserResult;
-          console.log('🚀 ~ extension.ts:38 ~ parserResult:', parserResult);
           logDebug('Parser:', JSON.stringify(parserResult, null, 2));
 
           if (parserResult.invalidImports && parserResult.invalidImports.length > 0) {

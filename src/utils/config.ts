@@ -22,7 +22,6 @@ const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
     { name: '@library', regex: /^@library/, order: 4 },
     { name: 'Utils', regex: /^yutils/, order: 5 },
   ],
-  maxLineLength: 150,
   formatOnSave: false,
   defaultGroupName: 'Misc',
   typeOrder: {
@@ -32,7 +31,7 @@ const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
     typeNamed: 3,  
     sideEffect: 4  
   },
-  priorityImports: [/^react$/],
+  // priorityImports: [/^react$/],
   regexPatterns: {
     sectionComment: /^\s*\/\/\s*(?:Misc|DS|@app(?:\/[a-zA-Z0-9_-]+)?|@core|@library|Utils|.*\b(?:misc|ds|dossier|client|notification|core|library|utils)\b.*)\s*$/gim,
     appSubfolderPattern: /^@app\/([a-zA-Z0-9_-]+)/
@@ -121,12 +120,6 @@ class ConfigManager {
       this.eventEmitter.fire({ configKey: 'formatOnSave', newValue: formatOnSave });
     }
 
-    const maxLineLength = vsConfig.get<number>('maxLineLength');
-    if (typeof maxLineLength === 'number' && maxLineLength > 0) {
-      this.config.maxLineLength = maxLineLength;
-      this.eventEmitter.fire({ configKey: 'maxLineLength', newValue: maxLineLength });
-    }
-
     const defaultGroupName = vsConfig.get<string>('defaultGroupName');
     if (defaultGroupName) {
       this.config.defaultGroupName = defaultGroupName;
@@ -154,7 +147,6 @@ class ConfigManager {
     return {
       importGroups: this.getImportGroups(),
       regexPatterns: this.getRegexPatterns(),
-      maxLineLength: this.config.maxLineLength,
       formatOnSave: this.config.formatOnSave,
       defaultGroupName: this.config.defaultGroupName || 'Misc',
       typeOrder: this.config.typeOrder,
@@ -166,13 +158,15 @@ class ConfigManager {
    * Convertit la configuration du formateur en configuration du parser
    */
   public getParserConfig(): ParserConfig {
+    const validGroups = this.getImportGroups().filter(group => group.regex);
+    
     return {
       defaultGroupName: this.config.defaultGroupName || 'Misc',
       typeOrder: this.config.typeOrder,
       patterns: {
         appSubfolderPattern: this.config.regexPatterns.appSubfolderPattern
       },
-      importGroups: this.getImportGroups().map(group => ({
+      importGroups: validGroups.map(group => ({
         name: group.name,
         regex: group.regex,
         order: group.order,

@@ -1,8 +1,7 @@
 module.exports = {
     testEnvironment: 'node',
     testMatch: [
-        "**/*.test.js",
-        "**/test/**/*.js"
+        "**/unit/**/*.js"
     ],
     moduleNameMapper: {
         "^vscode$": "<rootDir>/test/mocks/vscode.js"

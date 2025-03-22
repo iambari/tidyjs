@@ -46,50 +46,69 @@
       "properties": {
         "tidyjs.groups": {
           "type": "array",
-          "default": [
-            {
-              "name": "Misc",
-              "regex": "^(react|lodash|date-fns)$",
-              "order": 0
-            },
-            {
-              "name": "DS",
-              "regex": "^ds$",
-              "order": 1
-            },
-            {
-              "name": "@app/dossier",
-              "regex": "^@app\\/dossier",
-              "order": 2
-            },
-            {
-              "name": "@core",
-              "regex": "^@core",
-              "order": 3
-            },
-            {
-              "name": "@library",
-              "regex": "^@library",
-              "order": 4
-            },
-            {
-              "name": "Utils",
-              "regex": "^yutils",
-              "order": 5
+          "items": {
+            "type": "object",
+            "required": ["name", "order"],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "isDefault": { "const": true }
+                  }
+                },
+                "then": {}
+              },
+              {
+                "if": {
+                  "properties": {
+                    "isDefault": { "const": false }
+                  },
+                  "required": ["isDefault"]
+                },
+                "then": {
+                  "required": ["regex"]
+                }
+              },
+              {
+                "if": {
+                  "not": {
+                    "required": ["isDefault"]
+                  }
+                },
+                "then": {
+                  "required": ["regex"]
+                }
+              }
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the import group"
+              },
+              "regex": {
+                "type": "string",
+                "description": "Regular expression to match import sources"
+              },
+              "order": {
+                "type": "number",
+                "description": "Group order (groups are sorted in ascending order)"
+              },
+              "isDefault": {
+                "type": "boolean",
+                "description": "Indicates whether this group is the default group"
+              },
+              "priority": {
+                "type": "number",
+                "description": "Group priority when regex patterns overlap (higher value means higher priority)"
+              }
             }
-          ],
-          "description": "Define import groups, their regex matchers, and ordering"
+          },
+          "description": "Import groups (imports matching a regex are placed in the corresponding group)"
         },
         "tidyjs.formatOnSave": {
           "type": "boolean",
           "default": false,
           "description": "Automatically format imports when saving a file"
-        },
-        "tidyjs.maxLineLength": {
-          "type": "number",
-          "default": 150,
-          "minimum": 80,
-          "description": "Maximum line length for import statements. Imports exceeding this length will be split into multiple lines."
         },
         "tidyjs.debug": {
           "type": "boolean",
@@ -149,6 +168,6 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "tidyjs-parser": "github:asmirbe/tidyjs-parser#main"
+    "tidyjs-parser": "github:asmirbe/tidyjs-parser#feat/config-validation"
   }
 }

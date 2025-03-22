@@ -21,7 +21,6 @@ export type SourcePatterns = {
 export interface FormatterConfig {
   importGroups: ImportGroup[];
   formatOnSave: boolean;
-  maxLineLength: number;
   defaultGroupName?: string;
   typeOrder?: TypeOrder;
   priorityImports?: RegExp[];

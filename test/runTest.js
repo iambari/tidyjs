@@ -37,8 +37,7 @@ function createMockParserResult(sourceText) {
     },
     patterns: {
       appSubfolderPattern: mockConfig.regexPatterns.appSubfolderPattern
-    },
-    priorityImports: [/^react$/]
+    }
   };
   
   const parser = new ImportParser(parserConfig);

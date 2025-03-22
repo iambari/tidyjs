@@ -31,6 +31,7 @@ export function activate(context: ExtensionContext): void {
   try {
     configManager.loadConfiguration();
     configManager.getFormatterConfig();
+    logDebug('Configuration loaded:', JSON.stringify(configManager.getFormatterConfig(), null, 2));
 
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('tidyjs')) {

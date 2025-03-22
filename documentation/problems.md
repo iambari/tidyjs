@@ -111,7 +111,9 @@ La logique de tri des groupes d'imports est codée en dur pour certains noms de 
 2. ~~Renforcer la détection des imports dynamiques avec des expressions régulières plus robustes.~~
 
 3. Ajouter une validation des configurations utilisateur, en particulier pour les expressions régulières.
+    - Fait dans le `parser`.
 
-4. Implémenter un système plus clair pour gérer les priorités des groupes d'imports personnalisés.
+4. ~~Implémenter un système plus clair pour gérer les priorités des groupes d'imports personnalisés.~~ 
+    - Fait coté `parser`.
 
 5. Rendre la fonction d'alignement des imports multilignes plus robuste en gérant les cas particuliers.

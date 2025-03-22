@@ -78,7 +78,6 @@ import { formatDate } from '@library/helpers';
     // other groups...
   ],
   "tidyjs.formatOnSave": false,
-  "tidyjs.maxLineLength": 150
 }
 ```
 

@@ -4,6 +4,12 @@ import {
     FormattedImportGroup
 }                        from './types';
 
+// Core
+import {
+    ParsedImport,
+    ParserResult
+}                 from 'tidyjs-parser';
+
 // Utils
 import { logDebug } from './utils/log';
 import {
@@ -11,12 +17,6 @@ import {
     isEmptyLine,
     showMessage
 }                   from './utils/misc';
-
-// Core
-import {
-    ParsedImport,
-    ParserResult
-}                 from 'tidyjs-parser';
 
 const fromKeywordRegex = /\bfrom\b/;
 const multilineCommentStartRegex = /\/\*/;

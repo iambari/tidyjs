@@ -2,14 +2,6 @@
 import { formatImports } from './formatter';
 import { InvalidImport } from './types';
 
-// Utils
-import { configManager } from './utils/config';
-import {
-    logDebug,
-    logError
-}                        from './utils/log';
-import { showMessage }   from './utils/misc';
-
 // Core
 import {
     ImportParser,
@@ -24,6 +16,14 @@ import {
     workspace
 }                                from 'vscode';
 import type { ExtensionContext } from 'vscode';
+
+// Utils
+import { configManager } from './utils/config';
+import {
+    logDebug,
+    logError
+}                        from './utils/log';
+import { showMessage }   from './utils/misc';
 
 let parser = new ImportParser(configManager.getParserConfig());
 

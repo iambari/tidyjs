@@ -98,6 +98,32 @@ import { logDebug } from './utils/log';
 
 `
     );
+});
+
+test('handles imports with from keyword on new line', () => {
+    const source = `// Misc
+import { FormatterConfig } 
+    from './types';
+import { ParsedImport } 
+from 'tidyjs-parser';
+// Utils
+import { logDebug } from './utils/log';`;
+
+    const importRange = { start: 0, end: source.length };
+    const parserResult = createParserResult(source);
+
+    const result = formatImportsFromParser(source, importRange, parserResult, config);
+
+    expect(result).toBe(
+      `// Misc
+import { FormatterConfig } from './types';
+import { ParsedImport }    from 'tidyjs-parser';
+
+// Utils
+import { logDebug } from './utils/log';
+
+`
+    );
   });
 
   test('formate correctement les importations avec des alias', () => {

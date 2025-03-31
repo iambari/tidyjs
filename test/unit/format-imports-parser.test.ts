@@ -3,29 +3,47 @@ const { formatImportsFromParser } = require('../../src/formatter');
 const { ImportParser } = require('tidyjs-parser');
 
 describe('formatImportsFromParser', () => {
-  // Base configuration for tests
-  let config;
+  let config : any;
 
   beforeEach(() => {
     config = createMockConfig();
   });
 
-  // Utility function to create a parser result
   function createParserResult(sourceText) {
     const parserConfig = {
       importGroups: config.importGroups,
       typeOrder: config.typeOrder,
       patterns: config.patterns
     };
-    console.log('Import groups:', parserConfig.importGroups.map(g => ({
-      name: g.name,
-      regex: g.regex.toString()
-    })));
     const parser = new ImportParser(parserConfig);
     const result = parser.parse(sourceText);
-    console.log('Parser result:', result);
     return result;
   }
+
+  test('formate correctement les importations avec des alias', () => {
+    const source = `// Misc
+import React, { FormatterConfig as Config } from 'react';
+import { ParsedImport as Parser } from 'tidyjs-parser';
+// Utils
+import { logDebug as debug } from './utils/log';`;
+
+    const importRange = { start: 0, end: source.length };
+    const parserResult = createParserResult(source);
+
+    const result = formatImportsFromParser(source, importRange, parserResult, config);
+
+    expect(result).toBe(
+      `// Misc
+import React                         from 'react';
+import { FormatterConfig as Config } from 'react';
+import { ParsedImport as Parser }    from 'tidyjs-parser';
+
+// Utils
+import { logDebug as debug } from './utils/log';
+
+`
+    );
+  });
 
   test('correctly processes multiline comments that start and end on the same line', () => {
     const source = `// Misc
@@ -102,9 +120,9 @@ import { logDebug } from './utils/log';
 
 `
     );
-});
+  });
 
-test('handles imports with from keyword on new line', () => {
+  test('handles imports with from keyword on new line', () => {
     const source = `// Misc
 import { FormatterConfig } 
     from './types';

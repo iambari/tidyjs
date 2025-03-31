@@ -1,8 +1,7 @@
 import { cleanUpLines } from '../../src/formatter';
 
-// Test pour valider la gestion des commentaires multilignes
 describe('cleanUpLines', () => {
-  test('ignore les commentaires inline /* ... */', () => {
+  test('should ignore inline comments /* ... */', () => {
     const lines = [
       '// Core',
       'import React from "react";',

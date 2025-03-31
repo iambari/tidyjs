@@ -35,43 +35,43 @@ function someFunction() {
     }
   });
 
-describe('Dynamic imports detection', () => {
-  test('détecte différentes formes d\'imports dynamiques', () => {
-    const sources = [
-      // Import dynamique simple
-      'const module = import("./module");',
-      // Import dynamique avec await sur la même ligne
-      'const module = await import("./module");',
-      // Import dynamique avec await et espaces multiples
-      'const module = await    import("./module");',
-      // Import dynamique avec await et retour à la ligne
-      'const module = await \n  import("./module");',
-      // Import dynamique avec déclaration et assignation
-      'let module; module = await import("./module");',
-      // Import dynamique dans une fonction
-      'async function load() { return await import("./module"); }',
-      // Import dynamique avec caractères avant sur la même ligne
-      'if (condition) const module = await import("./module");'
-    ];
+  describe('Dynamic imports detection', () => {
+    test('détecte différentes formes d\'imports dynamiques', () => {
+      const sources = [
+        // Import dynamique simple
+        'const module = import("./module");',
+        // Import dynamique avec await sur la même ligne
+        'const module = await import("./module");',
+        // Import dynamique avec await et espaces multiples
+        'const module = await    import("./module");',
+        // Import dynamique avec await et retour à la ligne
+        'const module = await \n  import("./module");',
+        // Import dynamique avec déclaration et assignation
+        'let module; module = await import("./module");',
+        // Import dynamique dans une fonction
+        'async function load() { return await import("./module"); }',
+        // Import dynamique avec caractères avant sur la même ligne
+        'if (condition) const module = await import("./module");'
+      ];
 
-    for (const source of sources) {
+      for (const source of sources) {
+        const result = findImportsRange(source);
+        // On s'attend à avoir result === null car ce sont des imports dynamiques
+        expect(result).toBeNull();
+      }
+    });
+
+    test('rejette le mélange d\'imports statiques et dynamiques', () => {
+      const source = `
+  import { something } from 'somewhere';
+
+  const module = await import('./module');
+  `;
+      
       const result = findImportsRange(source);
-      // On s'attend à avoir result === null car ce sont des imports dynamiques
       expect(result).toBeNull();
-    }
+    });
   });
-
-  test('rejette le mélange d\'imports statiques et dynamiques', () => {
-    const source = `
-import { something } from 'somewhere';
-
-const module = await import('./module');
-`;
-    
-    const result = findImportsRange(source);
-    expect(result).toBeNull();
-  });
-});
   
   test('traite correctement les commentaires multilignes standards', () => {
     const source = `

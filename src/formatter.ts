@@ -188,7 +188,7 @@ function cleanUpLines(lines: string[]): string[] {
 }
 
 function formatImportLine(importItem: ParsedImport): string {
-    const { type, source, specifiers, raw } = importItem;
+    const { type, source, specifiers } = importItem;
 
     if (type === 'sideEffect' || specifiers.length === 0) {
         return `import '${source}';`;
@@ -220,16 +220,16 @@ function formatImportLine(importItem: ParsedImport): string {
         return parts.join('\n');
     }
 
-    return raw;
+    const typePrefix = type === 'typeNamed' ? 'type ' : '';
+    const specifiersStr = specifiers.join(', ');
+    return `import ${typePrefix}{ ${specifiersStr} } from '${source}';`;
 }
 
 function extractGroupName(source: string, groupName: string): string {
-    // Si le nom du groupe est déjà un nom spécial, le retourner tel quel
     if (groupName === 'Misc' || groupName === 'DS' || groupName === 'Utils') {
         return groupName;
     }
     
-    // Sinon chercher le préfixe @app/, @core/, etc.
     const match = source.match(/@[a-zA-Z]+(?:\/[a-zA-Z]+)?/);
     return match ? match[0] : groupName;
 }
@@ -265,17 +265,13 @@ function formatImportsFromParser(
             const endCommentIndex = trimmedLine.indexOf('*/');
             const importIndex = trimmedLine.indexOf('import');
             
-            // Si le commentaire est sur la même ligne qu'un import
             if (startCommentIndex !== -1 && endCommentIndex !== -1 && importIndex !== -1) {
-                // Si l'import vient après le commentaire
                 if (importIndex > endCommentIndex) {
-                    // On garde uniquement la partie après le commentaire
                     importsOnly.push(line.substring(line.indexOf('import')));
                     continue;
                 }
             }
             
-            // Gestion normale des commentaires multilignes
             if (startCommentIndex !== -1) {
                 inMultilineComment = true;
                 if (endCommentIndex !== -1) {
@@ -340,38 +336,30 @@ function formatImportsFromParser(
                 importLines: []
             };
 
-            // Créer une Map pour stocker les imports par type
             const importsByType = new Map<string, ParsedImport[]>();
 
-            // Initialiser la Map avec tous les types possibles
             Object.keys(typeOrder).forEach(type => {
                 importsByType.set(type, []);
             });
 
-            // Grouper les imports par type
             for (const importItem of imports) {
                 const typeArray = importsByType.get(importItem.type) || [];
                 typeArray.push(importItem);
                 importsByType.set(importItem.type, typeArray);
             }
 
-            // Fonction de tri principale qui respecte toutes les règles
             const compareImports = (a: ParsedImport, b: ParsedImport): number => {
-                // Priorité 1: Type d'import selon typeOrder
                 const typeCompare = typeOrder[a.type as keyof typeof typeOrder] - typeOrder[b.type as keyof typeof typeOrder];
                 if (typeCompare !== 0) return typeCompare;
                 
-                // Priorité 2: Source spéciale (React)
                 const isReactA = a.source.toLowerCase() === 'react';
                 const isReactB = b.source.toLowerCase() === 'react';
                 if (isReactA && !isReactB) return -1;
                 if (!isReactA && isReactB) return 1;
                 
-                // Priorité 3: Ordre alphabétique des sources
                 const sourceCompare = a.source.localeCompare(b.source);
                 if (sourceCompare !== 0) return sourceCompare;
                 
-                // Priorité 4: Longueur des spécificateurs (pour les imports nommés multiples)
                 if ((a.type === 'named' || a.type === 'typeNamed') &&
                     (b.type === 'named' || b.type === 'typeNamed') &&
                     a.specifiers.length > 1 && b.specifiers.length > 1) {
@@ -381,7 +369,6 @@ function formatImportsFromParser(
                 return 0;
             };
             
-            // Trier tous les imports avec notre fonction de comparaison
             const orderedImports = [...imports].sort(compareImports);
 
             groupResult.importLines.push(...orderedImports.map(formatImportLine));
@@ -566,6 +553,11 @@ function formatImports(
         logDebug('No parser result provided, unable to format imports');
         return { text: sourceText };
     }
+
+    const hasMultilineImports = parserResult.originalImports.some(imp => imp.includes('\n'));
+    if (hasMultilineImports) {
+        logDebug('Multiline imports detected, forcing reformat');
+    }
     
     if (parserResult.invalidImports && parserResult.invalidImports.length > 0) {
         return {
@@ -575,8 +567,36 @@ function formatImports(
     }
 
     try {
-        const formattedText = formatImportsFromParser(sourceText, importRange, parserResult, config);
-        return { text: formattedText };
+        let formattedText = formatImportsFromParser(sourceText, importRange, parserResult, config);
+        
+        if (hasMultilineImports) {
+            for (let i = 0; i < parserResult.originalImports.length; i++) {
+                const originalImport = parserResult.originalImports[i];
+                
+                if (originalImport.includes('\n')) {
+                    const importMatch = originalImport.match(/import\s+(\{[^}]+\})\s+from\s+['"](.*?)['"];/s);
+                    
+                    if (importMatch) {
+                        const specifiers = importMatch[1].replace(/\s+/g, ' ').trim();
+                        const source = importMatch[2].replace(/\s+/g, '').trim();
+                        
+                        const formattedImport = `import ${specifiers} from '${source}';`;
+                        
+                        logDebug(`Reformatting multiline import: "${originalImport}" -> "${formattedImport}"`);
+                        
+                        if (formattedText.includes(originalImport)) {
+                            formattedText = formattedText.replace(originalImport, formattedImport);
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (formattedText !== sourceText) {
+            return { text: formattedText };
+        }
+        
+        return { text: sourceText };
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         showMessage.error(`An error occurred while formatting imports: ${errorMessage}`);
@@ -584,7 +604,6 @@ function formatImports(
         throw new Error(errorMessage);
     }
 }
-
 
 export {
     cleanUpLines,

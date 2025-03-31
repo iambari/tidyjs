@@ -31,7 +31,6 @@ export function activate(context: ExtensionContext): void {
   try {
     configManager.loadConfiguration();
     configManager.getFormatterConfig();
-    logDebug('Configuration loaded:', JSON.stringify(configManager.getFormatterConfig(), null, 2));
 
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('tidyjs')) {
@@ -78,7 +77,10 @@ export function activate(context: ExtensionContext): void {
             return;
           }
 
-          if (formattedDocument.text !== documentText) {
+          // Vérifier si des imports sont sur plusieurs lignes
+          const hasMultilineImports = parserResult.originalImports.some(imp => imp.includes('\n'));
+          
+          if (formattedDocument.text !== documentText || hasMultilineImports) {
             const fullDocumentRange = new Range(
               document.positionAt(0),
               document.positionAt(documentText.length)

@@ -36,7 +36,8 @@ const TEST_CONFIG = {
 const DEFAULT_IMPORT_GROUPS = [
   { name: 'Misc', regex: '^(react|react-.*|lodash)$', order: 0 },
   { name: 'DS', regex: '^ds$', order: 1 },
-  { name: '@app', regex: '^@app$', order: 2 }
+  { name: '@app', regex: '^@app$', order: 2 },
+  { name: 'Utils', regex: '^yutils$', order: 3 },
 ];
 
 // Fonctions factory pour les mocks

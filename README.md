@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://i.imghippo.com/files/xHR6550fA.png" width="120" alt="TidyJS Logo" />
+  <img src="https://raw.githubusercontent.com/asmirbe/tidyjs/blob/main/media/large.png" width="120" alt="TidyJS Logo" />
   <h1 align="center">TidyJS</h1>
   <p align="center">Automatically organizes and formats import declarations in <code>TypeScript</code> and <code>JavaScript</code> files. It groups imports by customizable categories, perfectly aligns <code>from</code> keywords, and intelligently sorts imports by type and length.</p>
 </div>

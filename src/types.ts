@@ -1,32 +1,36 @@
-import { TypeOrder } from 'tidyjs-parser';
+export interface Config {
+  // Groupes d'imports (simplifié)
+  groups: Array<{
+    name: string
+    order: number
+    isDefault?: boolean
+    match: RegExp
+  }>
 
-export type ImportGroup = {
-  name: string;
-  order: number;
-  priority?: number;
-} & (
-  | {
-      isDefault: true;
-      regex?: RegExp;
-    }
-  | {
-      isDefault?: false;
-      regex: RegExp;
-    }
-);
+  // Ordre des types d'imports (simplifié et renommé)
+  importOrder: {
+    default: number    // import X from 'y'
+    named: number      // import { X } from 'y' 
+    typeOnly: number   // import type { X } from 'y'
+    sideEffect: number // import 'x.css'
+  }
 
-export interface FormatterConfig {
-  importGroups: ImportGroup[];
-  formatOnSave: boolean;
-  typeOrder?: TypeOrder;
-  sectionComment?: RegExp;
+  // Nouvelles options de formatage
+  format: {
+    onSave: boolean,
+    indent?: number,
+    singleQuote?: boolean,
+    bracketSpacing?: boolean,
+  }
+
+  // Patterns réutilisables
   patterns?: {
-    subfolderPattern?: RegExp;
-  };
+    appModules?: RegExp
+  }
 }
 
 export interface FormattedImportGroup {
-  groupName: string;
-  commentLine: string;
-  importLines: string[];
+  groupName: string
+  commentLine: string
+  importLines: string[]
 }

@@ -1,6 +1,6 @@
 // Misc
 import {
-    FormatterConfig,
+    Config,
     FormattedImportGroup
 }                        from './types';
 
@@ -238,7 +238,7 @@ function formatImportsFromParser(
     sourceText: string,
     importRange: { start: number; end: number },
     parserResult: ParserResult,
-    config: FormatterConfig,
+    config: Config,
 ): string {
     if (importRange.start === importRange.end || !parserResult.groups.length) {
         return sourceText;
@@ -306,12 +306,11 @@ function formatImportsFromParser(
         }
 
         const importsByGroup: GroupedImports = {};
-        const typeOrder = config.typeOrder || {
+        const importOrder = config.importOrder || {
             'default': 0,
             'named': 1,
-            'typeDefault': 2,
-            'typeNamed': 3,
-            'sideEffect': 4
+            'typeOnly': 2,
+            'sideEffect': 3
         };
 
         parserResult.groups.forEach(group => {
@@ -338,7 +337,7 @@ function formatImportsFromParser(
 
             const importsByType = new Map<string, ParsedImport[]>();
 
-            Object.keys(typeOrder).forEach(type => {
+            Object.keys(importOrder).forEach(type => {
                 importsByType.set(type, []);
             });
 
@@ -349,7 +348,7 @@ function formatImportsFromParser(
             }
 
             const compareImports = (a: ParsedImport, b: ParsedImport): number => {
-                const typeCompare = typeOrder[a.type as keyof typeof typeOrder] - typeOrder[b.type as keyof typeof typeOrder];
+                const typeCompare = importOrder[a.type as keyof typeof importOrder] - importOrder[b.type as keyof typeof importOrder];
                 if (typeCompare !== 0) return typeCompare;
                 
                 const isReactA = a.source.toLowerCase() === 'react';
@@ -533,7 +532,7 @@ function findImportsRange(text: string) {
 
 function formatImports(
     sourceText: string, 
-    config: FormatterConfig,
+    config: Config,
     parserResult?: ParserResult
 ): { text: string; error?: string } {
     const importRange = findImportsRange(sourceText);

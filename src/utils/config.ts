@@ -1,12 +1,5 @@
 // Misc
-import {
-    ImportGroup,
-    FormatterConfig
-}                   from '../types';
-import {
-  TypeOrder,
-  ParserConfig
-}              from 'tidyjs-parser';
+import { Config } from '../types';
 // VSCode
 import vscode from 'vscode';
 
@@ -15,50 +8,66 @@ export interface ConfigChangeEvent {
   newValue: unknown;
 }
 
-const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
-  importGroups: [
-    { name: 'Misc', order: 0, isDefault: true, regex: /^(react|react-.*|lodash|date-fns|classnames|@fortawesome|@reach|uuid|@tanstack|ag-grid-community|framer-motion)$/ },
-    { name: 'DS', order: 1, regex: /^ds$/ },
-    { name: '@core', order: 3, regex: /^@core/ },
-    { name: '@library', order: 4, regex: /^@library/ },
-    { name: 'Utils', order: 5, regex: /^yutils/ },
+const DEFAULT_CONFIG: Config = {
+  groups: [
+    { 
+      name: 'React',
+      order: 0,
+      isDefault: false,
+      match: /^(react|react-.*|next|next-.*)$/
+    },
+    {
+      name: 'External',
+      order: 1,
+      isDefault: false,
+      match: /^(?!@app|@test).*$/
+    },
+    {
+      name: 'Internal',
+      order: 2,
+      isDefault: true,
+      match: /^@app/
+    }
   ],
-  formatOnSave: false,
-  typeOrder: {
-    default: 0,    
-    named: 1,      
-    typeDefault: 2,
-    typeNamed: 3,  
-    sideEffect: 4  
+  importOrder: {
+    default: 0,
+    named: 1,
+    typeOnly: 2,
+    sideEffect: 3
   },
-  sectionComment: /^\s*\/\/\s*(?:Misc|DS|@app(?:\/[a-zA-Z0-9_-]+)?|@core|@library|Utils|.*\b(?:misc|ds|dossier|client|notification|core|library|utils)\b.*)\s*$/gim,
+  format: {
+    onSave: false,
+    indent: 4,
+    singleQuote: true,
+    bracketSpacing: true
+  },
   patterns: {
-    subfolderPattern: /^@app\/([a-zA-Z0-9_-]+)/
-  },
+    appModules: /^@app\/([a-zA-Z0-9_-]+)/,
+  }
 };
 
 class ConfigManager {
-  private config: FormatterConfig;
+  private config: Config;
   private eventEmitter: vscode.EventEmitter<ConfigChangeEvent> = new vscode.EventEmitter<ConfigChangeEvent>();
-  private appSubfolders: Map<string, ImportGroup> = new Map();
+  private subfolders: Map<string, Config['groups'][0]> = new Map();
 
   public readonly onDidConfigChange: vscode.Event<ConfigChangeEvent> = this.eventEmitter.event;
 
   constructor() {
-    this.config = { ...DEFAULT_FORMATTER_CONFIG };
+    this.config = { ...DEFAULT_CONFIG };
     this.loadConfiguration();
   }
 
-  public getConfig(): FormatterConfig {
+  public getConfig(): Config {
     return this.config;
   }
 
-  public getImportGroups(): ImportGroup[] {
-    const baseGroups = [...this.config.importGroups];
-    const appSubfolderGroups = Array.from(this.appSubfolders.values());
+  public getGroups(): Config['groups'] {
+    const baseGroups = [...this.config.groups];
+    const subfolderGroups = Array.from(this.subfolders.values());
 
-    const sortedGroups = [...baseGroups, ...appSubfolderGroups].sort((a, b) => {
-      // Groupe par défaut (Misc) toujours en premier
+    const sortedGroups = [...baseGroups, ...subfolderGroups].sort((a, b) => {
+      // Groupe par défaut toujours en premier
       if (a.isDefault) return -1;
       if (b.isDefault) return 1;
 
@@ -82,22 +91,15 @@ class ConfigManager {
     return sortedGroups;
   }
 
-  public getRegexPatterns() {
-    return {
-      sectionComment: this.config.sectionComment,
-      subfolderPattern: this.config.patterns?.subfolderPattern
-    };
-  }
-
   public registerAppSubfolder(subfolder: string): void {
-    if (subfolder && !this.appSubfolders.has(subfolder)) {
+    if (subfolder && !this.subfolders.has(subfolder)) {
       const order = 2;
       const name = `@app/${subfolder}`;
-      const regex = new RegExp(`^@app\\/${subfolder}`);
+      const match = new RegExp(`^@app\\/${subfolder}`);
 
-      this.appSubfolders.set(subfolder, {
+      this.subfolders.set(subfolder, {
         name,
-        regex,
+        match,
         order,
         isDefault: false
       });
@@ -107,82 +109,82 @@ class ConfigManager {
   public loadConfiguration(): void {
     const vsConfig = vscode.workspace.getConfiguration('tidyjs');
 
-    const customGroups = vsConfig.get<Array<{ name: string; regex: string; order: number; isDefault?: boolean }>>('groups');
+    const customGroups = vsConfig.get<Array<{ name: string; match: string; order: number; isDefault?: boolean }>>('groups');
     if (customGroups && customGroups.length > 0) {
-      this.config.importGroups = customGroups.map((group) => {
-        const regexStr = group.regex || '';
+      this.config.groups = customGroups.map((group) => {
+        const matchStr = group.match || '';
         let pattern: string;
         let flags = '';
 
-        if (regexStr && regexStr.startsWith('/') && regexStr.length > 2) {
-          const lastSlashIndex = regexStr.lastIndexOf('/');
+        if (matchStr && matchStr.startsWith('/') && matchStr.length > 2) {
+          const lastSlashIndex = matchStr.lastIndexOf('/');
           if (lastSlashIndex > 0) {
-            pattern = regexStr.slice(1, lastSlashIndex);
-            flags = regexStr.slice(lastSlashIndex + 1);
+            pattern = matchStr.slice(1, lastSlashIndex);
+            flags = matchStr.slice(lastSlashIndex + 1);
 
             const validFlags = flags.split('').every(flag => 'gimsuy'.includes(flag));
             if (!validFlags) {
-              throw new Error(`Invalid regex flags in pattern: ${regexStr}. Valid flags are: g, i, m, s, u, y`);
+              throw new Error(`Invalid regex flags in pattern: ${matchStr}. Valid flags are: g, i, m, s, u, y`);
             }
           } else {
-            pattern = regexStr;
+            pattern = matchStr;
           }
         } else {
-          pattern = regexStr;
+          pattern = matchStr;
         }
 
         return {
           name: group.name,
-          regex: new RegExp(pattern, flags),
+          match: new RegExp(pattern, flags),
           order: group.order,
           isDefault: group.isDefault || false,
         };
       });
-      this.eventEmitter.fire({ configKey: 'importGroups', newValue: this.config.importGroups });
-    }
-    const formatOnSave = vsConfig.get<boolean>('formatOnSave');
-    if (typeof formatOnSave === 'boolean') {
-      this.config.formatOnSave = formatOnSave;
-      this.eventEmitter.fire({ configKey: 'formatOnSave', newValue: formatOnSave });
+      this.eventEmitter.fire({ configKey: 'groups', newValue: this.config.groups });
     }
 
-    const typeOrder = vsConfig.get<TypeOrder>('typeOrder');
-    if (typeOrder) {
-      this.config.typeOrder = typeOrder;
-      this.eventEmitter.fire({ configKey: 'typeOrder', newValue: typeOrder });
+    const format = vsConfig.get<Config['format']>('format');
+    if (format) {
+      this.config.format = { ...this.config.format, ...format };
+      this.eventEmitter.fire({ configKey: 'format', newValue: format });
+    }
+
+    const importOrder = vsConfig.get<Config['importOrder']>('importOrder');
+    if (importOrder) {
+      this.config.importOrder = importOrder;
+      this.eventEmitter.fire({ configKey: 'importOrder', newValue: importOrder });
+    }
+
+    const patterns = vsConfig.get<Config['patterns']>('patterns');
+    if (patterns) {
+      this.config.patterns = { ...this.config.patterns, ...patterns };
+      this.eventEmitter.fire({ configKey: 'patterns', newValue: patterns });
     }
   }
 
   public getFormatOnSave(): boolean {
-    return this.config.formatOnSave;
-  }
-
-  public getFormatterConfig(): FormatterConfig {
-    return {
-      importGroups: this.getImportGroups(),
-      formatOnSave: this.config.formatOnSave,
-      typeOrder: this.config.typeOrder,
-      sectionComment: this.config.sectionComment,
-      patterns: this.config.patterns
-    };
+    return this.config.format.onSave;
   }
 
   /**
-   * Convertit la configuration du formateur en configuration du parser
+   * Convertit la configuration au format du parser
    */
-  public getParserConfig(): ParserConfig {
-    const validGroups = this.getImportGroups().filter(group => group.regex);
-    
+  public getParserConfig() {
     return {
-      typeOrder: this.config.typeOrder,
+      importOrder: this.config.importOrder,
       patterns: {
-        subfolderPattern: this.config.patterns?.subfolderPattern
+        subfolderPattern: this.config.patterns?.appModules
       },
-      importGroups: validGroups
+      importGroups: this.getGroups().map(group => ({
+        name: group.name,
+        order: group.order,
+        isDefault: group.isDefault || false,
+        match: group.match
+      }))
     };
   }
 }
 
 export const configManager = new ConfigManager();
 
-export const DEFAULT_IMPORT_GROUPS: ImportGroup[] = configManager.getImportGroups();
+export const DEFAULT_GROUPS: Config['groups'] = configManager.getGroups();

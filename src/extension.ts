@@ -1,11 +1,9 @@
 // Misc
-import { formatImports } from './formatter';
-import { InvalidImport } from 'tidyjs-parser';
-
 // Core
 import {
     ImportParser,
-    ParserResult
+    ParserResult,
+    InvalidImport
 }                 from 'tidyjs-parser';
 
 // VSCode
@@ -19,6 +17,7 @@ import type { ExtensionContext } from 'vscode';
 
 // Utils
 import { configManager } from './utils/config';
+import { formatImports } from './formatter';
 import {
     logDebug,
     logError
@@ -30,7 +29,6 @@ let parser = new ImportParser(configManager.getParserConfig());
 export function activate(context: ExtensionContext): void {
   try {
     configManager.loadConfiguration();
-    configManager.getFormatterConfig();
 
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('tidyjs')) {
@@ -68,7 +66,7 @@ export function activate(context: ExtensionContext): void {
 
           const formattedDocument = formatImports(
             documentText,
-            configManager.getFormatterConfig(),
+            configManager.getConfig(),
             parserResult
           );
 
@@ -108,7 +106,7 @@ export function activate(context: ExtensionContext): void {
     );
 
     const formatOnSaveDisposable = workspace.onDidSaveTextDocument((document) => {
-      if (configManager.getFormatOnSave()) {
+      if (configManager.getConfig().format.onSave) {
         const editor = window.activeTextEditor;
         if (editor && editor.document === document) {
           commands.executeCommand('extension.format');

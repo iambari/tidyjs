@@ -15,7 +15,6 @@ export interface Config {
     sideEffect: number // import 'x.css'
   }
 
-  // Nouvelles options de formatage
   format: {
     onSave: boolean,
     indent?: number,
@@ -23,7 +22,6 @@ export interface Config {
     bracketSpacing?: boolean,
   }
 
-  // Patterns réutilisables
   patterns?: {
     appModules?: RegExp
   }

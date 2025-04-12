@@ -26,17 +26,17 @@
     },
     {
       "name": "Utils",
-      "regex": ".*utils.*",
+      "match": ".*utils.*",
       "order": 3
     },
     {
-      "name": "Core",
-      "regex": "^tidyjs-parser$",
+      "name": "Parser",
+      "match": "^tidyjs-parser$",
       "order": 1
     },
     {
       "name": "VSCode",
-      "regex": "^vscode$",
+      "match": "^vscode$",
       "order": 2
     },
   ]

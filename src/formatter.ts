@@ -4,7 +4,7 @@ import {
     FormattedImportGroup
 }                        from './types';
 
-// Core
+// Parser
 import {
     ParsedImport,
     ParserResult
@@ -12,6 +12,7 @@ import {
 
 // Utils
 import { logDebug } from './utils/log';
+
 import {
     logError,
     isEmptyLine,
@@ -180,8 +181,10 @@ function cleanUpLines(lines: string[]): string[] {
         result.pop();
     }
 
-    result.push('');
-    result.push('');
+    // Add only one newline if there isn't already one
+    if (result.length === 0 || !isEmptyLine(result[result.length - 1])) {
+        result.push('');
+    }
 
     return result;
 }

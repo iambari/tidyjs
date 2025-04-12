@@ -1,5 +1,10 @@
 // Misc
-// Core
+import {
+    formatImports,
+    findImportsRange
+}                    from './formatter';
+
+// Parser
 import {
     ImportParser,
     ParserResult,
@@ -17,12 +22,12 @@ import type { ExtensionContext } from 'vscode';
 
 // Utils
 import { configManager } from './utils/config';
-import { findImportsRange, formatImports } from './formatter';
 import {
     logDebug,
     logError
 }                        from './utils/log';
 import { showMessage }   from './utils/misc';
+
 
 let parser = new ImportParser(configManager.getParserConfig());
 

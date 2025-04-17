@@ -152,8 +152,7 @@
     "bump:minor": "sh ./bump.sh minor",
     "bump:major": "sh ./bump.sh major",
     "test": "node ./test/runTest.js",
-    "test:unit": "jest test/unit --verbose",
-    "sync": "sh ./sync.sh"
+    "test:unit": "jest test/unit --verbose"
   },
   "devDependencies": {
     "@babel/generator": "^7.26.10",

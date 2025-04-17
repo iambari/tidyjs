@@ -151,7 +151,6 @@
     "bump:patch": "sh ./bump.sh patch",
     "bump:minor": "sh ./bump.sh minor",
     "bump:major": "sh ./bump.sh major",
-    "test": "node ./test/runTest.js",
     "test:unit": "jest test/unit --verbose"
   },
   "devDependencies": {

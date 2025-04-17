@@ -66,17 +66,14 @@ class ConfigManager {
     const baseGroups = [...this.config.groups];
     const appModulePattern = this.config.patterns?.appModules;
     
-    // N'ajouter les sous-dossiers que si appModulePattern est défini
     const subfolderGroups = appModulePattern
       ? Array.from(this.subfolders.values())
       : [];
 
     const sortedGroups = [...baseGroups, ...subfolderGroups].sort((a, b) => {
-      // Groupe par défaut toujours en premier
       if (a.isDefault) return -1;
       if (b.isDefault) return 1;
 
-      // Si le pattern appModulePattern est défini, on applique la logique de tri spécifique
       if (appModulePattern) {
         const aIsApp = appModulePattern.test(a.name);
         const bIsApp = appModulePattern.test(b.name);
@@ -84,7 +81,6 @@ class ConfigManager {
         if (aIsApp && !bIsApp) return -1;
         if (!aIsApp && bIsApp) return 1;
 
-        // Tri des sous-dossiers
         if (aIsApp && bIsApp) {
           if (a.name === appModulePattern.source) return 1;
           if (b.name === appModulePattern.source) return -1;
@@ -92,7 +88,6 @@ class ConfigManager {
         }
       }
 
-      // Tri par ordre pour tous les autres groupes
       return a.order - b.order;
     });
 
@@ -151,11 +146,8 @@ class ConfigManager {
       this.eventEmitter.fire({ configKey: 'groups', newValue: this.config.groups });
     }
 
-    // Récupérer la valeur booléenne de formatOnSave
     const formatOnSave = vsConfig.get<boolean>('formatOnSave');
-    // Vérifier si la valeur est définie (peut être true ou false)
     if (formatOnSave !== undefined) {
-      // Mettre à jour uniquement la propriété onSave
       this.config.format.onSave = formatOnSave;
       this.eventEmitter.fire({ configKey: 'format.onSave', newValue: formatOnSave });
     }

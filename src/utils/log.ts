@@ -10,19 +10,23 @@ export function logDebug(message: string, ...args: unknown[]): void {
   if (!DEBUG_MODE()) {
     return;
   }
-  
+
   const timestamp = new Date().toISOString();
   let formattedMessage = `[${timestamp}] [DEBUG] ${message}`;
-  
+
   if (args.length > 0) {
-    formattedMessage += ' ' + args.map(arg => {
-      if (typeof arg === 'object' && arg !== null) {
-        return JSON.stringify(arg, null, 2);
-      }
-      return String(arg);
-    }).join(' ');
+    formattedMessage +=
+      ' ' +
+      args
+        .map((arg) => {
+          if (typeof arg === 'object' && arg !== null) {
+            return JSON.stringify(arg, null, 2);
+          }
+          return String(arg);
+        })
+        .join(' ');
   }
-  
+
   OUTPUT_CHANNEL.appendLine(formattedMessage);
   OUTPUT_CHANNEL.show();
 }
@@ -30,18 +34,22 @@ export function logDebug(message: string, ...args: unknown[]): void {
 export function logError(message: string, ...args: unknown[]): void {
   const timestamp = new Date().toISOString();
   let formattedMessage = `[${timestamp}] [ERROR] ${message}`;
-  
+
   if (args.length > 0) {
-    formattedMessage += ' ' + args.map(arg => {
-      if (arg instanceof Error) {
-        return `${arg.message}\n${arg.stack}`;
-      } else if (typeof arg === 'object' && arg !== null) {
-        return JSON.stringify(arg);
-      }
-      return String(arg);
-    }).join(' ');
+    formattedMessage +=
+      ' ' +
+      args
+        .map((arg) => {
+          if (arg instanceof Error) {
+            return `${arg.message}\n${arg.stack}`;
+          } else if (typeof arg === 'object' && arg !== null) {
+            return JSON.stringify(arg);
+          }
+          return String(arg);
+        })
+        .join(' ');
   }
-  
+
   OUTPUT_CHANNEL.appendLine(formattedMessage);
   OUTPUT_CHANNEL.show();
 }

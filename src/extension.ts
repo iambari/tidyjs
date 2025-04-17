@@ -1,33 +1,17 @@
 // Misc
-import {
-    formatImports,
-    findImportsRange
-}                    from './formatter';
+import { formatImports, findImportsRange, needsFormatting } from './formatter';
 
 // Parser
-import {
-    ImportParser,
-    ParserResult,
-    InvalidImport
-}                 from 'tidyjs-parser';
+import { ImportParser, ParserResult, InvalidImport } from 'tidyjs-parser';
 
 // VSCode
-import {
-    Range,
-    window,
-    commands,
-    workspace
-}                                from 'vscode';
+import { Range, window, commands, workspace } from 'vscode';
 import type { ExtensionContext } from 'vscode';
 
 // Utils
 import { configManager } from './utils/config';
-import {
-    logDebug,
-    logError
-}                        from './utils/log';
-import { showMessage }   from './utils/misc';
-
+import { logDebug, logError } from './utils/log';
+import { showMessage } from './utils/misc';
 
 let parser = new ImportParser(configManager.getParserConfig());
 
@@ -42,58 +26,56 @@ export function activate(context: ExtensionContext): void {
       }
     });
 
-    const formatImportsCommand = commands.registerCommand(
-      'extension.format',
-      async () => {
-        const editor = window.activeTextEditor;
-        if (!editor) {
-          showMessage.warning('No active editor found');
-          return;
-        }
+    const formatImportsCommand = commands.registerCommand('extension.format', async () => {
+      const editor = window.activeTextEditor;
+      if (!editor) {
+        showMessage.warning('No active editor found');
+        return;
+      }
 
-        const document = editor.document;
-        const documentText = document.getText();
-        const importRange = findImportsRange(documentText);
-        if (importRange && importRange.start !== importRange.end) {
-          const importsText = documentText.substring(importRange.start, importRange.end);
-          try {
-            const parserResult = parser.parse(importsText) as ParserResult;
-            logDebug('Parser:', JSON.stringify(parserResult, null, 2));
-  
-            if (parserResult.invalidImports && parserResult.invalidImports.length > 0) {
-              const errorMessages = parserResult.invalidImports.map(invalidImport => {
-                return formatImportError(invalidImport);
-              });
-  
-              showMessage.error(`Invalid import syntax: ${errorMessages[0]}`);
-  
-              logError('Invalid imports found:', errorMessages.join('\n'));
-              return;
-            }
-  
-            const formattedDocument = formatImports(
-              documentText,
-              configManager.getConfig(),
-              parserResult
-            );
-  
-            if (formattedDocument.error) {
-              showMessage.error(formattedDocument.error);
-              return;
-            }
-  
-            // Vérifier si des imports sont sur plusieurs lignes
-            const hasMultilineImports = parserResult.originalImports.some(imp => imp.includes('\n'));
-            
-            if (formattedDocument.text !== documentText || hasMultilineImports) {
-              const fullDocumentRange = new Range(
-                document.positionAt(0),
-                document.positionAt(documentText.length)
-              );
-  
-              await editor.edit((editBuilder) => {
+      const document = editor.document;
+      const documentText = document.getText();
+      const importRange = findImportsRange(documentText);
+      if (importRange && importRange.start !== importRange.end) {
+        const importsText = documentText.substring(importRange.start, importRange.end);
+        try {
+          const parserResult = parser.parse(importsText) as ParserResult;
+          logDebug('Parser:', JSON.stringify(parserResult, null, 2));
+
+          if (parserResult.invalidImports && parserResult.invalidImports.length > 0) {
+            const errorMessages = parserResult.invalidImports.map((invalidImport) => {
+              return formatImportError(invalidImport);
+            });
+
+            showMessage.error(`Invalid import syntax: ${errorMessages[0]}`);
+
+            logError('Invalid imports found:', errorMessages.join('\n'));
+            return;
+          }
+
+          if (!needsFormatting(documentText, configManager.getConfig(), parserResult)) {
+            logDebug('No formatting needed – skipping edit');
+            showMessage.info('No formatting needed');
+            return;
+          }
+
+          const formattedDocument = formatImports(documentText, configManager.getConfig(), parserResult);
+
+          if (formattedDocument.error) {
+            showMessage.error(formattedDocument.error);
+            return;
+          }
+
+          const hasMultilineImports = parserResult.originalImports.some((imp) => imp.includes('\n'));
+
+          if (formattedDocument.text !== documentText || hasMultilineImports) {
+            const fullDocumentRange = new Range(document.positionAt(0), document.positionAt(documentText.length));
+
+            await editor
+              .edit((editBuilder) => {
                 editBuilder.replace(fullDocumentRange, formattedDocument.text);
-              }).then((success) => {
+              })
+              .then((success) => {
                 if (success) {
                   logDebug('Successfully formatted imports in document');
                   showMessage.info('Imports formatted successfully!');
@@ -101,17 +83,16 @@ export function activate(context: ExtensionContext): void {
                   showMessage.warning('Failed to format imports in document');
                 }
               });
-            } else {
-              logDebug('No changes needed for the document');
-            }
-          } catch (error) {
-            logError('Error:', error);
-            const errorMessage = String(error);
-            showMessage.error(`Error formatting imports: ${errorMessage}`);
+          } else {
+            logDebug('No changes needed for the document');
           }
+        } catch (error) {
+          logError('Error:', error);
+          const errorMessage = String(error);
+          showMessage.error(`Error formatting imports: ${errorMessage}`);
         }
       }
-    );
+    });
 
     const formatOnSaveDisposable = workspace.onDidSaveTextDocument((document) => {
       if (configManager.getConfig().format.onSave) {

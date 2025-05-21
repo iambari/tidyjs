@@ -1,7 +1,7 @@
-import { findImportsRange } from '../../src/formatter';
+import { findImportsWithBabel } from '../../src/formatter';
 
-describe('findImportsRange', () => {
-  test('identifie correctement la plage d\'imports, même avec des commentaires multilignes compacts', () => {
+describe('findImportsWithBabel', () => {
+  test('identifie correctement la plage d\'imports, même avec des commentaires multilignes compacts', async () => {
     const source = `
 // Misc
 import { FormatterConfig } from './types';
@@ -17,7 +17,7 @@ function someFunction() {
 }
 `;
     
-    const result = findImportsRange(source);
+    const result = await findImportsWithBabel(source);
     
     // Vérifier que la plage couvre tous les imports
     expect(result).not.toBeNull();
@@ -36,7 +36,7 @@ function someFunction() {
   });
 
   describe('Dynamic imports detection', () => {
-    test('détecte différentes formes d\'imports dynamiques', () => {
+    test('détecte différentes formes d\'imports dynamiques', async () => {
       const sources = [
         // Import dynamique simple
         'const module = import("./module");',
@@ -55,25 +55,25 @@ function someFunction() {
       ];
 
       for (const source of sources) {
-        const result = findImportsRange(source);
+        const result = await findImportsWithBabel(source);
         // On s'attend à avoir result === null car ce sont des imports dynamiques
         expect(result).toBeNull();
       }
     });
 
-    test('rejette le mélange d\'imports statiques et dynamiques', () => {
+    test('rejette le mélange d\'imports statiques et dynamiques', async () => {
       const source = `
   import { something } from 'somewhere';
 
   const module = await import('./module');
   `;
       
-      const result = findImportsRange(source);
+      const result = await findImportsWithBabel(source);
       expect(result).toBeNull();
     });
   });
   
-  test('traite correctement les commentaires multilignes standards', () => {
+  test('traite correctement les commentaires multilignes standards', async () => {
     const source = `
 // Misc
 import { FormatterConfig } from './types';
@@ -92,7 +92,7 @@ function someFunction() {
 }
 `;
     
-    const result = findImportsRange(source);
+    const result = await findImportsWithBabel(source);
     
     // Vérifier que la plage couvre tous les imports
     expect(result).not.toBeNull();
@@ -107,7 +107,7 @@ function someFunction() {
     }
   });
   
-  test('gère correctement les imports à côté des commentaires multilignes', () => {
+  test('gère correctement les imports à côté des commentaires multilignes', async () => {
     const source = `
 // Misc
 import { FormatterConfig } from './types';
@@ -122,7 +122,7 @@ function someFunction() {
 }
 `;
     
-    const result = findImportsRange(source);
+    const result = await findImportsWithBabel(source);
     
     // Vérifier que la plage couvre tous les imports
     expect(result).not.toBeNull();
@@ -137,7 +137,7 @@ import { FormatterConfig } from './types';`);
     }
   });
   
-  test('ignore les imports à l\'intérieur des commentaires multilignes', () => {
+  test('ignore les imports à l\'intérieur des commentaires multilignes', async () => {
     const source = `
 // Misc
 import { FormatterConfig } from './types';
@@ -154,7 +154,7 @@ function someFunction() {
 }
 `;
     
-    const result = findImportsRange(source);
+    const result = await findImportsWithBabel(source);
     
     // Vérifier que la plage couvre tous les imports réels
     expect(result).not.toBeNull();
@@ -169,7 +169,7 @@ function someFunction() {
     }
   });
   
-  test('ne s\'interrompt pas par des commentaires multilignes qui commencent et finissent sur la même ligne', () => {
+  test('ne s\'interrompt pas par des commentaires multilignes qui commencent et finissent sur la même ligne', async () => {
     const source = `
 // Misc
 import { FormatterConfig } from './types';
@@ -185,7 +185,7 @@ function someFunction() {
 }
 `;
     
-    const result = findImportsRange(source);
+    const result = await findImportsWithBabel(source);
     
     // Vérifier que la plage couvre tous les imports
     expect(result).not.toBeNull();
@@ -199,7 +199,7 @@ function someFunction() {
     }
   });
   
-  test('gère correctement les commentaires imbriqués dans les imports', () => {
+  test('gère correctement les commentaires imbriqués dans les imports', async () => {
     const source = `
 // Misc
 import { 
@@ -214,7 +214,7 @@ function someFunction() {
 }
 `;
     
-    const result = findImportsRange(source);
+    const result = await findImportsWithBabel(source);
     
     // Vérifier que la plage couvre tous les imports
     expect(result).not.toBeNull();

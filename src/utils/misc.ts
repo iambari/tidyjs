@@ -1,6 +1,6 @@
 // VSCode
-import { ParserResult } from 'tidyjs-parser';
 import { DiagnosticSeverity, languages, Uri, window } from 'vscode';
+import { ParserResult } from '../parser';
 const UNUSED_IMPORT_CODES = ['unused-import', 'import-not-used', '6192', '6133'];
 
 /**

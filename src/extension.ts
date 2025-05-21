@@ -1,8 +1,6 @@
 // Misc
-import { formatImports, findImportsRange, needsFormatting } from './formatter';
-
-// Parser
-import { ImportParser, ParserResult, InvalidImport } from 'tidyjs-parser';
+import { formatImports, findImportsWithBabel } from './formatter';
+import { ImportParser, ParserResult, InvalidImport } from './parser';
 
 // VSCode
 import { Range, window, commands, workspace } from 'vscode';
@@ -30,7 +28,7 @@ async function applyDocumentUpdate(document: import('vscode').TextDocument, pars
   const documentText = document.getText();
 
   try {
-    const formattedDocument = formatImports(documentText, formatterConfig, parserResult);
+    const formattedDocument = await formatImports(documentText, formatterConfig, parserResult);
 
     if (formattedDocument.error) {
       showMessage.error(formattedDocument.error);
@@ -66,6 +64,9 @@ async function applyDocumentUpdate(document: import('vscode').TextDocument, pars
 /**
  * Commande de formatage pour séparer clairement l'étape de suppression des imports
  */
+/**
+ * Commande de formatage des imports avec gestion améliorée des erreurs
+ */
 async function formatImportsCommand(): Promise<void> {
   const editor = window.activeTextEditor;
   if (!editor) {
@@ -75,19 +76,33 @@ async function formatImportsCommand(): Promise<void> {
 
   const document = editor.document;
   const documentText = document.getText();
-  const importRange = findImportsRange(documentText);
 
+  // Utiliser la fonction Babel pour trouver les imports
+  const importRange = await findImportsWithBabel(documentText);
+
+  // Gérer le cas d'erreur de parsing
+  if (importRange?.error) {
+    showMessage.error(importRange.error);
+    logError('Error analyzing imports:', importRange.error);
+    return;
+  }
+
+  // Gérer le cas où aucun import n'est trouvé
   if (!importRange || importRange.start === importRange.end) {
     showMessage.info('No imports found in document');
     return;
   }
 
+  // Extraire le texte des imports
   const importsText = documentText.substring(importRange.start, importRange.end);
+  logDebug(`Found imports from position ${importRange.start} to ${importRange.end}`);
 
   try {
+    // Parser le texte des imports avec le parser TidyJS
     let parserResult = parser.parse(importsText) as ParserResult;
     logDebug('Parser result:', JSON.stringify(parserResult, null, 2));
 
+    // Vérifier la présence d'imports invalides
     if (parserResult.invalidImports && parserResult.invalidImports.length > 0) {
       const errorMessages = parserResult.invalidImports.map((invalidImport) => {
         return formatImportError(invalidImport);
@@ -98,6 +113,7 @@ async function formatImportsCommand(): Promise<void> {
       return;
     }
 
+    // Supprimer les imports non utilisés si activé dans la configuration
     if (configManager.getConfig().format.removeUnused) {
       const unusedImports = getUnusedImports(document.uri, parserResult);
       logDebug('Unused imports:', unusedImports);
@@ -106,12 +122,14 @@ async function formatImportsCommand(): Promise<void> {
       }
     }
 
-    if (!needsFormatting(documentText, configManager.getConfig(), parserResult)) {
-      showMessage.info('No formatting needed');
-      logDebug('No formatting needed – skipping edit');
-      return;
-    }
+    // Vérifier si le formatage est nécessaire
+    // if (!await needsFormatting(documentText, configManager.getConfig(), parserResult)) {
+    //   showMessage.info('No formatting needed');
+    //   logDebug('No formatting needed – skipping edit');
+    //   return;
+    // }
 
+    // Appliquer les modifications au document
     const success = await applyDocumentUpdate(document, parserResult, configManager.getConfig());
 
     if (success) {
@@ -131,6 +149,7 @@ export function activate(context: ExtensionContext): void {
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('tidyjs')) {
         configManager.loadConfiguration();
+        // Re-initialize the parser with the new, fully processed config
         parser = new ImportParser(configManager.getParserConfig());
       }
     });

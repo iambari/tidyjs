@@ -12,7 +12,7 @@ import { Config as ExtensionGlobalConfig } from './types'; // Adjust path if nec
 export type ConfigImportGroup = {
   name: string;
   order: number;
-  priority?: number; // Keep if used, otherwise consider removal if not in ExtensionGlobalConfig.groups
+  priority?: number; // Keep if used, Miscwise consider removal if not in ExtensionGlobalConfig.groups
 } & (
   | {
       isDefault: true;
@@ -190,7 +190,7 @@ export class ImportParser {
   //   // ...
   //   if (this.internalConfig.typeOrder) { // check existence if it can be optional
   //     group.imports.sort((a, b) => {
-  //       const typeOrderA = this.internalConfig.typeOrder[a.type] ?? Infinity; // or some other default
+  //       const typeOrderA = this.internalConfig.typeOrder[a.type] ?? Infinity; // or some Misc default
   //       const typeOrderB = this.internalConfig.typeOrder[b.type] ?? Infinity;
   //   // ...
   // }
@@ -332,17 +332,17 @@ export class ImportParser {
       });
     }
 
-    if (!groupMap.has('other')) {
-      groupMap.set('other', {
-        name: 'other',
+    if (!groupMap.has('Misc')) {
+      groupMap.set('Misc', {
+        name: 'Misc',
         order: 999, 
         imports: [],
       });
     }
 
     for (const imp of imports) {
-      const groupName = imp.groupName || 'other';
-      const group = groupMap.get(groupName) || groupMap.get('other'); // Fallback to 'other'
+      const groupName = imp.groupName || 'Misc';
+      const group = groupMap.get(groupName) || groupMap.get('Misc'); // Fallback to 'Misc'
       if (group) {
         group.imports.push(imp);
       }

@@ -30,6 +30,8 @@ async function applyDocumentUpdate(document: import('vscode').TextDocument, pars
   try {
     const formattedDocument = await formatImports(documentText, formatterConfig, parserResult);
 
+    logDebug('Formatted document:', configManager.getParserConfig());
+
     if (formattedDocument.error) {
       showMessage.error(formattedDocument.error);
       return false;

@@ -5,7 +5,7 @@ export interface Config {
     name: string;
     order: number;
     isDefault?: boolean;
-    match: RegExp;
+    match?: RegExp;
   }>;
 
   importOrder: {

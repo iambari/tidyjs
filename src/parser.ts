@@ -120,14 +120,20 @@ export class ImportParser {
           name: g.name,
           order: g.order,
           isDefault: true,
-          match: g.match, // g.match is RegExp from ExtensionGlobalConfig, fits 'match?: RegExp'
+          match: g.match,
+        };
+      } else if (g.match) {
+        return {
+          name: g.name,
+          order: g.order,
+          isDefault: false,
+          match: g.match,
         };
       } else {
         return {
           name: g.name,
           order: g.order,
-          isDefault: false, // or undefined if your ConfigImportGroup allows
-          match: g.match,   // g.match is RegExp, fits 'match: RegExp'
+          isDefault: true,
         };
       }
     });
@@ -323,29 +329,64 @@ export class ImportParser {
 
   private organizeImportsIntoGroups(imports: ParsedImport[]): ImportGroup[] {
     const groupMap = new Map<string, ImportGroup>();
+    let configuredDefaultGroupName: string | null = null;
+
+    // 1. Initialize all configured groups from internalConfig and identify any group marked as default.
+    for (const configGroup of this.internalConfig.importGroups) {
+        groupMap.set(configGroup.name, {
+            name: configGroup.name,
+            order: configGroup.order,
+            imports: [],
+        });
+        if (configGroup.isDefault) {
+            // if (configuredDefaultGroupName && configuredDefaultGroupName !== configGroup.name) {
+                // console.warn(`Multiple import groups configured as default. Using "${configGroup.name}".`);
+            // }
+            configuredDefaultGroupName = configGroup.name;
+        }
+    }
+
+    // 2. Determine the name of the group to use for uncategorized imports.
+    const UNCONFIGURED_DEFAULT_FALLBACK_NAME = 'Default';
+    let effectiveDefaultGroupName: string;
+
+    if (configuredDefaultGroupName) {
+        effectiveDefaultGroupName = configuredDefaultGroupName;
+    } else {
+        effectiveDefaultGroupName = UNCONFIGURED_DEFAULT_FALLBACK_NAME;
+        if (!groupMap.has(effectiveDefaultGroupName)) {
+            let fallbackDefaultOrder = 999;
+            if (groupMap.size > 0) {
+                const maxOrder = Math.max(0, ...Array.from(groupMap.values(), g => g.order));
+                if (maxOrder >= fallbackDefaultOrder) {
+                    fallbackDefaultOrder = maxOrder + 1;
+                }
+            }
+            groupMap.set(effectiveDefaultGroupName, {
+                name: effectiveDefaultGroupName,
+                order: fallbackDefaultOrder,
+                imports: [],
+            });
+        }
+    }
     
-    for (const configGroup of this.internalConfig.importGroups) { // Use internalConfig
-      groupMap.set(configGroup.name, {
-        name: configGroup.name,
-        order: configGroup.order,
-        imports: [],
-      });
-    }
+    const defaultGroupForUncategorized = groupMap.get(effectiveDefaultGroupName)!;
 
-    if (!groupMap.has('Misc')) {
-      groupMap.set('Misc', {
-        name: 'Misc',
-        order: 999, 
-        imports: [],
-      });
-    }
-
+    // 3. Assign imports to their respective groups.
     for (const imp of imports) {
-      const groupName = imp.groupName || 'Misc';
-      const group = groupMap.get(groupName) || groupMap.get('Misc'); // Fallback to 'Misc'
-      if (group) {
-        group.imports.push(imp);
-      }
+        let targetGroup: ImportGroup | undefined;
+        if (imp.groupName && groupMap.has(imp.groupName)) {
+            targetGroup = groupMap.get(imp.groupName);
+        } else {
+            targetGroup = defaultGroupForUncategorized;
+        }
+
+        if (targetGroup) {
+            targetGroup.imports.push(imp);
+        }
+        // else {
+            // console.error(`Error: Could not assign import "${imp.raw}" to any group.`);
+        // }
     }
 
     for (const group of groupMap.values()) {

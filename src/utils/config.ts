@@ -17,26 +17,10 @@ const DEFAULT_CONFIG: Config = {
   // If not, remove this line. Ensure DEFAULT_CONFIG matches your Config type.
   groups: [
     {
-      name: 'React',
+      name: 'Misc',
       order: 0,
       isDefault: false,
-      match: /^(react|react-.*|next|next-.*)$/,
-    },
-    {
-      name: 'External',
-      order: 1,
-      isDefault: false,
-      match: /^(?!@app|@test).*$/,
-    },
-    {
-      name: 'Internal',
-      order: 2,
-      isDefault: true, // This group will act as a catch-all if its 'match' allows,
-      // or if other groups don't match.
-      match: /^@app/, // Note: if isDefault is true, the parser might treat match differently (e.g. optional)
-      // Your ConfigImportGroup in parser.ts handles this.
-      // Here, `match` is always a RegExp as per Config type.
-    },
+    }
   ],
   importOrder: {
     default: 0,
@@ -74,7 +58,7 @@ class ConfigManager {
     // Let's re-evaluate the copy for RegExp
     this.config = {
       ...DEFAULT_CONFIG,
-      groups: DEFAULT_CONFIG.groups.map((g) => ({ ...g, match: new RegExp(g.match.source, g.match.flags) })),
+      groups: DEFAULT_CONFIG.groups.map((g) => ({ ...g, match: g.match ? new RegExp(g.match.source, g.match.flags) : /./ })),
       format: { ...DEFAULT_CONFIG.format },
       importOrder: { ...DEFAULT_CONFIG.importOrder },
       patterns: DEFAULT_CONFIG.patterns
@@ -136,8 +120,8 @@ class ConfigManager {
       if (!a.isDefault && b.isDefault) return -1;
 
       // For app modules, if appModulePatternSource is available for comparison
-      if (appModulePatternSource && this.config.patterns?.appModules) {
-        const aIsApp = this.config.patterns.appModules.test(a.match.source); // Test against match RegExp source
+      if (appModulePatternSource && this.config.patterns?.appModules && a.match && b.match) {
+        const aIsApp = this.config.patterns.appModules.test(a.match.source);
         const bIsApp = this.config.patterns.appModules.test(b.match.source);
 
         if (aIsApp && !bIsApp) return -1; // App specific groups first

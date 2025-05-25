@@ -1,22 +1,18 @@
 {
   "compilerOptions": {
-    "module": "Node16",
-    "target": "es2020",
-    "outDir": "out/src",
-    "lib": ["es2020"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ESNext",
+    "lib": ["ES2021", "ES2021.String"],
     "sourceMap": true,
-    "moduleResolution": "Node16",
     "rootDir": "src",
-    "strict": true,
-    "noImplicitAny": false,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+    "checkJs": true,
+    "strict": true /* enable all strict type-checking options */,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    /* Additional Checks */
+    "noImplicitReturns": true /* Report error when not all code paths in function return a value. */,
+    "noFallthroughCasesInSwitch": true /* Report errors for fallthrough cases in switch statement. */,
+    "esModuleInterop": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": ["node_modules", ".vscode", ".vscode-test"]
+  "include": ["src/**/*.ts"]
 }

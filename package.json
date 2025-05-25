@@ -30,122 +30,164 @@
     "commands": [
       {
         "command": "extension.format",
-        "title": "Format Imports"
+        "title": "Format Imports",
+        "category": "TidyJS"
+      },
+      {
+        "command": "tidyjs.testValidation",
+        "title": "Configuration validation",
+        "category": "TidyJS"
       }
     ],
     "keybindings": [
       {
         "command": "extension.format",
-        "key": "ctrl+shift+i",
-        "mac": "cmd+shift+i",
-        "when": "editorTextFocus && !editorReadonly && (editorLangId == 'typescript' || editorLangId == 'javascript' || editorLangId == 'typescriptreact' || editorLangId == 'javascriptreact')"
+        "key": "ctrl+alt+i",
+        "mac": "cmd+alt+i",
+        "when": "editorTextFocus"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "extension.format",
+          "when": "resourceExtname =~ /\\.(ts|tsx|js|jsx)$/",
+          "group": "1_modification"
+        }
+      ],
+      "command-palette": [
+        {
+          "command": "extension.format"
+        },
+        {
+          "command": "tidyjs.showStatus"
+        },
+        {
+          "command": "tidyjs.reloadConfig"
+        },
+        {
+          "command": "tidyjs.repairConfig"
+        },
+        {
+          "command": "tidyjs.validateConfig"
+        }
+      ]
+    },
     "configuration": {
       "title": "TidyJS",
       "properties": {
-        "tidyjs.groups": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "name",
-              "order"
-            ],
-            "allOf": [
-              {
-                "if": {
-                  "properties": {
-                    "isDefault": {
-                      "const": true
-                    }
-                  }
-                },
-                "then": {}
-              },
-              {
-                "if": {
-                  "properties": {
-                    "isDefault": {
-                      "const": false
-                    }
-                  },
-                  "required": [
-                    "isDefault"
-                  ]
-                },
-                "then": {
-                  "required": [
-                    "match"
-                  ]
-                }
-              },
-              {
-                "if": {
-                  "not": {
-                    "required": [
-                      "isDefault"
-                    ]
-                  }
-                },
-                "then": {
-                  "required": [
-                    "match"
-                  ]
-                }
-              }
-            ],
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Name of the import group"
-              },
-              "match": {
-                "type": "string",
-                "description": "Regular expression to match import sources"
-              },
-              "order": {
-                "type": "number",
-                "description": "Group order (groups are sorted in ascending order)"
-              },
-              "isDefault": {
-                "type": "boolean",
-                "description": "Indicates whether this group is the default group"
-              },
-              "priority": {
-                "type": "number",
-                "description": "Group priority when match patterns overlap (higher value means higher priority)"
-              }
-            }
-          },
-          "description": "Import groups (imports matching a match are placed in the corresponding group)"
-        },
-        "tidyjs.formatOnSave": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically format imports when saving a file"
-        },
         "tidyjs.debug": {
           "type": "boolean",
           "default": false,
-          "description": "Enable debug mode to show detailed logging information in the Output panel"
+          "description": "Enable debug logging"
         },
-        "tidyjs.removeUnused": {
+        "tidyjs.groups": {
+          "type": "array",
+          "default": [
+            {
+              "name": "Misc",
+              "order": 0,
+              "isDefault": true
+            }
+          ],
+          "description": "Import groups configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Group name"
+              },
+              "match": {
+                "type": "string",
+                "description": "Regex pattern to match imports (format: /pattern/flags or pattern)"
+              },
+              "order": {
+                "type": "number",
+                "description": "Group order (lower numbers appear first)"
+              },
+              "isDefault": {
+                "type": "boolean",
+                "default": false,
+                "description": "Whether this group is the default for unmatched imports (only one group should have this set to true)"
+              }
+            },
+            "required": [
+              "name",
+              "order"
+            ]
+          }
+        },
+        "tidyjs.importOrder": {
+          "type": "object",
+          "default": {
+            "default": 0,
+            "named": 1,
+            "typeOnly": 2,
+            "sideEffect": 3
+          },
+          "description": "Order of import types within each group",
+          "properties": {
+            "default": {
+              "type": "number",
+              "description": "Order for default imports"
+            },
+            "named": {
+              "type": "number",
+              "description": "Order for named imports"
+            },
+            "typeOnly": {
+              "type": "number",
+              "description": "Order for type-only imports"
+            },
+            "sideEffect": {
+              "type": "number",
+              "description": "Order for side-effect imports"
+            }
+          }
+        },
+        "tidyjs.format.onSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically format imports on file save"
+        },
+        "tidyjs.format.indent": {
+          "type": "number",
+          "default": 4,
+          "description": "Number of spaces for indentation"
+        },
+        "tidyjs.format.removeUnused": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove unused imports during formatting"
+        },
+        "tidyjs.format.singleQuote": {
           "type": "boolean",
           "default": true,
-          "description": "Remove unused imports during formatting"
+          "description": "Use single quotes for import paths"
+        },
+        "tidyjs.format.bracketSpacing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Add spaces inside import braces"
+        },
+        "tidyjs.patterns.appModules": {
+          "type": "string",
+          "default": "^@app\\/([a-zA-Z0-9_-]+)",
+          "description": "Regex pattern to match application modules"
         }
       }
     }
   },
   "scripts": {
     "vscode:prepublish": "npm run build-prod",
-    "compile": "npm run check-types && npm run lint && node esbuild.js",
-    "watch": "npm-run-all -p watch:*",
+    "compile": "node scripts/build",
+    "watch": "npm run compile -- --watch",
+    "build": "vsce package",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "build-prod": "npm run check-types && npm run lint && node esbuild.js --production",
-    "package": "vsce package",
+    "package": "node scripts/build -- --production",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
@@ -167,7 +209,7 @@
     "@types/babel__generator": "^7.6.8",
     "@types/babel__traverse": "^7.20.6",
     "@types/jest": "^29.5.14",
-    "@types/node": "20.x",
+    "@types/node": "~20.17.30",
     "@types/vscode": "^1.90.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
@@ -175,7 +217,7 @@
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
     "@vscode/vsce": "^3.2.2",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.25.2",
     "esbuild-plugin-copy": "^2.1.1",
     "esbuild-plugin-output-reset": "^2.0.2",
     "eslint": "^9.21.0",
@@ -193,5 +235,9 @@
       "esbuild",
       "keytar"
     ]
+  },
+  "dependencies": {
+    "path-browserify": "^1.0.1",
+    "typescript-eslint": "^8.32.1"
   }
 }

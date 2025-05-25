@@ -1,4 +1,3 @@
-// VSCode
 import vscode from 'vscode';
 
 const OUTPUT_CHANNEL = vscode.window.createOutputChannel('TidyJS');

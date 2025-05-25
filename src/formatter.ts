@@ -1,12 +1,12 @@
-// Misc
 import traverse          from '@babel/traverse';
+import type { NodePath } from '@babel/traverse';
+import type { ImportDeclaration } from '@babel/types';
+const babelTraverse = typeof traverse === 'function' ? traverse : (traverse as any).default;
 import {
     Config,
     FormattedImportGroup
 }                        from './types';
 import { parse }         from '@babel/parser';
-
-// Utils
 import { logDebug } from './utils/log';
 import {
     logError,
@@ -20,14 +20,23 @@ const multilineCommentStartRegex = /\/\*/;
 const multilineCommentEndRegex = /\*\//;
 
 function alignFromKeyword(line: string, fromIndex: number, maxFromIndex: number): string {
-  if (fromIndex <= 0 || !fromKeywordRegex.test(line)) {
+  if (fromIndex <= 0 || !fromKeywordRegex.test(line) || maxFromIndex <= 0) {
+    return line;
+  }
+  if (fromIndex >= line.length) {
     return line;
   }
 
   const prefix = line.substring(0, fromIndex);
   const suffix = line.substring(fromIndex);
+  const targetPadding = Math.max(maxFromIndex, prefix.length);
+  const paddedPrefix = prefix.padEnd(targetPadding);
+  const result = paddedPrefix + suffix;
+  if (/\d\s*[a-zA-Z_$]/.test(result) && !/\d\s+[a-zA-Z_$]/.test(result)) {
+    return result.replace(/(\d)(\s*)([a-zA-Z_$])/g, '$1 $3');
+  }
 
-  return prefix.padEnd(maxFromIndex) + suffix;
+  return result;
 }
 
 function alignMultilineFromKeyword(line: string, fromIndex: number, maxFromIndex: number): string {
@@ -185,7 +194,7 @@ function cleanUpLines(lines: string[]): string[] {
 }
 
 function formatImportLine(importItem: ParsedImport): string {
-  const { type, source, specifiers } = importItem;
+  const { type, source, specifiers, defaultImport } = importItem;
 
   if (type === 'sideEffect' || specifiers.length === 0) {
     return `import '${source}';`;
@@ -197,6 +206,21 @@ function formatImportLine(importItem: ParsedImport): string {
 
   if (type === 'typeDefault' && specifiers.length === 1) {
     return `import type ${specifiers[0]} from '${source}';`;
+  }
+  if (type === 'mixed') {
+    if (defaultImport && specifiers.length > 0) {
+      const specifiersStr = specifiers.length === 1
+        ? specifiers[0]
+        : `\n    ${specifiers.join(',\n    ')}\n`;
+      
+      if (specifiers.length === 1) {
+        return `import ${defaultImport}, { ${specifiersStr} } from '${source}';`;
+      } else {
+        return `import ${defaultImport}, {${specifiersStr}} from '${source}';`;
+      }
+    } else if (defaultImport) {
+      return `import ${defaultImport} from '${source}';`;
+    }
   }
 
   if ((type === 'named' || type === 'typeNamed') && specifiers.length === 1) {
@@ -336,14 +360,16 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
       }
 
       const resolveTypeKey = (type: string) => {
-        return type === 'typeNamed' || type === 'typeDefault' ? 'typeOnly' : type;
+        if (type === 'typeNamed' || type === 'typeDefault') return 'typeOnly';
+        if (type === 'mixed') return 'default'; // Treat mixed imports like default imports
+        return type;
       };
 
       const compareImports = (a: ParsedImport, b: ParsedImport): number => {
         const typeA = resolveTypeKey(a.type);
         const typeB = resolveTypeKey(b.type);
 
-        const typeCompare = importOrder[typeA] - importOrder[typeB];
+        const typeCompare = (importOrder[typeA as keyof typeof importOrder] ?? 0) - (importOrder[typeB as keyof typeof importOrder] ?? 0);
         if (typeCompare !== 0) return typeCompare;
 
         const isReactA = a.source.toLowerCase() === 'react';
@@ -402,150 +428,382 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
   }
 }
 
-
 /**
- * Trouve la plage des imports dans un fichier source à l'aide de Babel,
- * incluant les commentaires qui précèdent les imports.
- * @param sourceText Code source à analyser
- * @returns Un objet avec les positions de début et de fin ou null en cas d'erreur
+ * Enhanced findImportsWithBabel with better error detection and handling
  */
 async function findImportsWithBabel(sourceText: string): Promise<{ start: number; end: number; error?: string } | null> {
   try {
-    const ast = parse(sourceText, {
-      sourceType: 'module',
-      plugins: ['typescript', 'jsx', 'decorators-legacy'],
-      errorRecovery: true,
-      allowImportExportEverywhere: true,
-    });
+    if (!sourceText || typeof sourceText !== 'string') {
+      return { start: 0, end: 0 };
+    }
+    if (sourceText.trim().length === 0) {
+      return { start: 0, end: 0 };
+    }
+    const suspiciousPatterns = [
+      {
+        pattern: /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
+        message: 'ISO timestamp detected in source code'
+      },
+      {
+        pattern: /\[\d{4}-\d{2}-\d{2}T/,
+        message: 'Timestamp in log format detected'
+      },
+      {
+        pattern: /\d+[a-zA-Z_$](?!\w*['"`])/,
+        message: 'Number directly followed by identifier'
+      },
+      {
+        pattern: /import\s*\d/,
+        message: 'Import followed by number'
+      },
+      {
+        pattern: /from\s*\d/,
+        message: 'From keyword followed by number'
+      },
+      {
+        pattern: /import\s*{\s*default\s*}\s*from/,
+        message: 'Invalid default import syntax'
+      },
+      {
+        pattern: /import\s*{\s*}\s*from/,
+        message: 'Empty import braces'
+      },
+      {
+        pattern: /import\s*{[^}]*{/,
+        message: 'Nested braces in import'
+      }
+    ];
+
+    for (const { pattern, message } of suspiciousPatterns) {
+      const match = pattern.exec(sourceText);
+      if (match) {
+        const line = sourceText.substring(0, match.index).split('\n').length;
+        const column = match.index - sourceText.lastIndexOf('\n', match.index - 1);
+        
+        logError(`Suspicious content detected: ${message}`, {
+          match: match[0],
+          line,
+          column,
+          context: sourceText.substring(Math.max(0, match.index - 20), match.index + 20)
+        });
+        
+        return {
+          start: 0,
+          end: 0,
+          error: `Syntax error at line ${line}, column ${column}: ${message} ("${match[0]}")`,
+        };
+      }
+    }
+    const commonIssues = [
+      {
+        check: () => sourceText.includes('import { default }'),
+        message: 'Invalid default import without variable name'
+      },
+      {
+        check: () => /import\s*{\s*,/.test(sourceText),
+        message: 'Leading comma in import destructuring'
+      },
+      {
+        check: () => /import\s*{[^}]*,\s*}/.test(sourceText),
+        message: 'Trailing comma in import destructuring'
+      }
+    ];
+
+    for (const { check, message } of commonIssues) {
+      if (check()) {
+        logError(`Common parsing issue detected: ${message}`);
+        return {
+          start: 0,
+          end: 0,
+          error: `Syntax error: ${message}`,
+        };
+      }
+    }
+
+    let ast;
+    try {
+      ast = parse(sourceText, {
+        sourceType: 'module',
+        plugins: ['typescript', 'jsx', 'decorators-legacy'],
+        errorRecovery: true,
+        allowImportExportEverywhere: true,
+        allowReturnOutsideFunction: true,
+        strictMode: false,
+      });
+    } catch (parseError) {
+      const parseMessage = parseError instanceof Error ? parseError.message : String(parseError);
+      logError('Babel parsing failed:', parseError);
+      let specificError = 'Parse error: Unable to parse the file.';
+      
+      if (parseMessage.includes('Unexpected token')) {
+        specificError = 'Syntax error: Unexpected token. Check for missing semicolons, quotes, or brackets in your imports.';
+      } else if (parseMessage.includes('Invalid left-hand side')) {
+        specificError = 'Syntax error: Invalid import statement structure.';
+      } else if (parseMessage.includes('Unexpected end of input')) {
+        specificError = 'Syntax error: Incomplete import statement found.';
+      } else if (parseMessage.includes('Identifier directly after number')) {
+        specificError = 'Syntax error: Invalid identifier after number. This often indicates corrupted content.';
+      } else if (parseMessage.includes('Identifier expected')) {
+        specificError = 'Syntax error: Missing identifier in import statement.';
+      }
+      
+      return {
+        start: 0,
+        end: 0,
+        error: specificError,
+      };
+    }
 
     let firstImportStart = -1;
     let lastImportEnd = -1;
     let hasImports = false;
+    const importPositions: Array<{ start: number; end: number }> = [];
 
-    traverse(ast, {
-      ImportDeclaration(path) {
-        hasImports = true;
-
-        if (path.node.start !== undefined && path.node.start !== null && path.node.end !== undefined && path.node.end !== null) {
-          const startPos = path.node.start;
-          const endPos = path.node.end;
-
-          if (firstImportStart === -1 || startPos < firstImportStart) {
-            firstImportStart = startPos;
+    try {
+      babelTraverse(ast, {
+        ImportDeclaration(path: NodePath<ImportDeclaration>) {
+          if (!path || !path.node || !path.node.source || typeof path.node.source.value !== 'string') {
+            logDebug('Skipping invalid import declaration node');
+            return;
           }
 
-          if (lastImportEnd === -1 || endPos > lastImportEnd) {
-            lastImportEnd = endPos;
+          hasImports = true;
+
+          let startPos = -1;
+          let endPos = -1;
+          if (path.node.start !== undefined && path.node.start !== null && 
+              path.node.end !== undefined && path.node.end !== null) {
+            startPos = path.node.start;
+            endPos = path.node.end;
+          } 
+          else if (path.node.loc) {
+            startPos = getPositionFromLine(sourceText, path.node.loc.start.line, path.node.loc.start.column);
+            endPos = getPositionFromLine(sourceText, path.node.loc.end.line, path.node.loc.end.column);
           }
-        } else if (path.node.loc) {
-          const startLine = path.node.loc.start.line;
-          const endLine = path.node.loc.end.line;
+          if (startPos >= 0 && endPos >= 0 && 
+              startPos < sourceText.length && 
+              endPos <= sourceText.length && 
+              startPos < endPos) {
+            const importText = sourceText.substring(startPos, endPos);
+            if (importText.includes('import') && (importText.includes('from') || importText.includes("'") || importText.includes('"'))) {
+              importPositions.push({ start: startPos, end: endPos });
+              
+              if (firstImportStart === -1 || startPos < firstImportStart) {
+                firstImportStart = startPos;
+              }
 
-          const startPos = getPositionFromLine(sourceText, startLine);
-          const endPos = getPositionFromLine(sourceText, endLine, true);
-
-          if (firstImportStart === -1 || startPos < firstImportStart) {
-            firstImportStart = startPos;
+              if (lastImportEnd === -1 || endPos > lastImportEnd) {
+                lastImportEnd = endPos;
+              }
+            } else {
+              logDebug('Skipping invalid import position:', { startPos, endPos, importText: importText.substring(0, 50) });
+            }
+          } else {
+            logDebug('Invalid import position detected:', { startPos, endPos, sourceLength: sourceText.length });
           }
+        },
+      });
+    } catch (traverseError) {
+      const traverseMessage = traverseError instanceof Error ? traverseError.message : String(traverseError);
+      logError('Error during AST traversal:', traverseError);
+      return {
+        start: 0,
+        end: 0,
+        error: `AST traversal error: ${traverseMessage}`,
+      };
+    }
 
-          if (lastImportEnd === -1 || endPos > lastImportEnd) {
-            lastImportEnd = endPos;
-          }
-        }
-      },
-    });
-
-    if (!hasImports || firstImportStart === -1 || lastImportEnd === -1) {
+    if (!hasImports || firstImportStart === -1 || lastImportEnd === -1 || importPositions.length === 0) {
       return { start: 0, end: 0 };
     }
-
-    let adjustedStartPosition = firstImportStart;
-
-    const lineStartPositions = [0];
-    let currentPos = 0;
-
-    while (currentPos < sourceText.length) {
-      const nextLineBreak = sourceText.indexOf('\n', currentPos);
-      if (nextLineBreak === -1) break;
-
-      currentPos = nextLineBreak + 1;
-      lineStartPositions.push(currentPos);
+    const detectedImportSection = sourceText.substring(firstImportStart, lastImportEnd);
+    if (!detectedImportSection.includes('import')) {
+      logDebug('No import keyword found in detected range, returning empty range');
+      return { start: 0, end: 0 };
+    }
+    let adjustedStartPosition = findActualImportStart(sourceText, firstImportStart);
+    adjustedStartPosition = Math.max(0, adjustedStartPosition);
+    if (adjustedStartPosition >= lastImportEnd || adjustedStartPosition >= sourceText.length) {
+      logDebug('Invalid range detected, falling back to original positions');
+      adjustedStartPosition = firstImportStart;
+    }
+    const finalImportSection = sourceText.substring(adjustedStartPosition, lastImportEnd);
+    if (!isValidImportSection(finalImportSection)) {
+      return {
+        start: 0,
+        end: 0,
+        error: 'Detected import section contains invalid syntax',
+      };
     }
 
-    let importLine = 0;
-    for (let i = 1; i < lineStartPositions.length; i++) {
-      if (lineStartPositions[i] > firstImportStart) {
-        importLine = i - 1;
-        break;
-      }
-    }
-
-    while (importLine > 0) {
-      const prevLineStart = lineStartPositions[importLine - 1];
-      const prevLineEnd = lineStartPositions[importLine] - 1;
-      const prevLine = sourceText.substring(prevLineStart, prevLineEnd).trim();
-
-      if (prevLine === '' || prevLine.startsWith('//') || prevLine.includes('/*') || prevLine.includes('*/')) {
-        importLine--;
-        adjustedStartPosition = prevLineStart;
-      } else {
-        break;
-      }
-    }
-
-    let pos = adjustedStartPosition;
-    while (pos > 0) {
-      const commentStart = sourceText.lastIndexOf('/*', pos);
-      const commentEnd = sourceText.indexOf('*/', commentStart);
-
-      if (commentStart !== -1 && commentEnd !== -1 && commentEnd < firstImportStart) {
-        const textBetween = sourceText.substring(commentEnd + 2, firstImportStart).trim();
-        if (textBetween === '' || /^\s*$/.test(textBetween)) {
-          adjustedStartPosition = commentStart;
-          break;
-        }
-      }
-
-      if (commentStart === -1 || commentStart < 0) break;
-      pos = commentStart - 1;
-    }
+    logDebug('Successfully detected import range:', {
+      start: adjustedStartPosition,
+      end: lastImportEnd,
+      length: lastImportEnd - adjustedStartPosition,
+      importsCount: importPositions.length
+    });
 
     return {
       start: adjustedStartPosition,
       end: lastImportEnd,
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logError('Error in findImportsWithBabel:', error);
+    let specificError = 'Import analysis error: Unable to parse the file.';
+    
+    if (errorMessage.includes('Unexpected token')) {
+      specificError = 'Syntax error: Unexpected token found. Please check for missing semicolons, quotes, or brackets in your imports.';
+    } else if (errorMessage.includes('Invalid left-hand side')) {
+      specificError = 'Syntax error: Invalid import statement structure.';
+    } else if (errorMessage.includes('Unexpected end of input')) {
+      specificError = 'Syntax error: Incomplete import statement found.';
+    } else if (errorMessage.includes('Identifier directly after number')) {
+      specificError = 'Syntax error: Invalid identifier after number. This may indicate corrupted file content or timestamps in the code.';
+    } else if (errorMessage.includes('Cannot parse')) {
+      specificError = `Parse error: ${errorMessage}`;
+    } else if (errorMessage.length > 0 && errorMessage !== 'undefined') {
+      specificError = `Import analysis error: ${errorMessage}`;
+    }
+    
     return {
       start: 0,
       end: 0,
-      error: 'There is an error in your imports. Please check the syntax.',
+      error: specificError,
     };
   }
 }
 
 /**
- * Convertit un numéro de ligne en position dans le texte.
+ * Enhanced validation for import sections
+ */
+function isValidImportSection(importSection: string): boolean {
+  if (!importSection || typeof importSection !== 'string') {
+    return false;
+  }
+
+  const trimmed = importSection.trim();
+  if (trimmed.length === 0) {
+    return true; // Empty section is valid
+  }
+  const hasImportKeyword = /\bimport\b/.test(importSection);
+  if (!hasImportKeyword) {
+    return false;
+  }
+  const invalidPatterns = [
+    {
+      pattern: /\d+[a-zA-Z_$]/,
+      description: 'number directly followed by identifier'
+    },
+    {
+      pattern: /import\s*\d/,
+      description: 'import followed by number'
+    },
+    {
+      pattern: /from\s*\d/,
+      description: 'from followed by number'
+    },
+    {
+      pattern: /import\s*['"]\s*$/,
+      description: 'incomplete import statement'
+    },
+    {
+      pattern: /import\s*{\s*default\s*}\s*from/,
+      description: 'invalid default import syntax'
+    },
+    {
+      pattern: /import\s*{\s*}\s*from/,
+      description: 'empty import braces'
+    },
+    {
+      pattern: /\d{4}-\d{2}-\d{2}T/,
+      description: 'timestamp in import section'
+    }
+  ];
+
+  for (const { pattern, description } of invalidPatterns) {
+    if (pattern.test(importSection)) {
+      logError(`Invalid import section detected: ${description}`);
+      return false;
+    }
+  }
+  const openBraces = (importSection.match(/{/g) || []).length;
+  const closeBraces = (importSection.match(/}/g) || []).length;
+  if (openBraces !== closeBraces) {
+    logError('Unbalanced braces in import section');
+    return false;
+  }
+  const singleQuotes = (importSection.match(/'/g) || []).length;
+  const doubleQuotes = (importSection.match(/"/g) || []).length;
+  if (singleQuotes % 2 !== 0 || doubleQuotes % 2 !== 0) {
+    logError('Unbalanced quotes in import section');
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Finds the actual start of imports by including preceding comments
+ */
+function findActualImportStart(sourceText: string, firstImportStart: number): number {
+  const lines = sourceText.split('\n');
+  let currentPos = 0;
+  let importLineIndex = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const lineEnd = currentPos + lines[i].length;
+    if (currentPos <= firstImportStart && firstImportStart <= lineEnd) {
+      importLineIndex = i;
+      break;
+    }
+    currentPos = lineEnd + 1; // +1 for the newline character
+  }
+
+  if (importLineIndex === -1) {
+    return firstImportStart;
+  }
+  let startLineIndex = importLineIndex;
+  for (let i = importLineIndex - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    if (line === '' || 
+        line.startsWith('//') || 
+        line.includes('/*') || 
+        line.includes('*/')) {
+      startLineIndex = i;
+    } else {
+      break;
+    }
+  }
+  let adjustedStart = 0;
+  for (let i = 0; i < startLineIndex; i++) {
+    adjustedStart += lines[i].length + 1; // +1 for newline
+  }
+
+  return adjustedStart;
+}
+
+/**
+ * Convertit un numéro de ligne et colonne en position dans le texte.
  * @param text Texte source
  * @param line Numéro de ligne (1-indexed)
- * @param isEnd Si vrai, renvoie la fin de la ligne plutôt que le début
+ * @param column Numéro de colonne (0-indexed, optionnel)
  * @returns Position dans le texte (0-indexed)
  */
-function getPositionFromLine(text: string, line: number, isEnd = false): number {
+function getPositionFromLine(text: string, line: number, column: number = 0): number {
   if (line <= 0) return 0;
 
   const lines = text.split('\n');
   let position = 0;
-
-  for (let i = 0; i < line - 1; i++) {
-    position += (lines[i]?.length || 0) + 1;
+  for (let i = 0; i < line - 1 && i < lines.length; i++) {
+    position += lines[i].length + 1; // +1 for newline character
+  }
+  if (line - 1 < lines.length) {
+    const currentLine = lines[line - 1];
+    const safeColumn = Math.min(column, currentLine.length);
+    position += safeColumn;
   }
 
-  if (isEnd && line - 1 < lines.length) {
-    position += lines[line - 1]?.length || 0;
-  }
-
-  return position;
+  return Math.max(0, Math.min(position, text.length));
 }
 
 async function formatImports(sourceText: string, config: Config, parserResult?: ParserResult): Promise<{ text: string; error?: string }> {

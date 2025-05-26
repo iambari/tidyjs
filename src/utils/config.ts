@@ -53,7 +53,8 @@ class ConfigManager {
   }
 
   /**
-   * Effectue une validation initiale après le chargement de la configuration
+   * Performs initial validation after configuration loading
+   * Sets internal validation state and logs errors if configuration is invalid
    */
   private performInitialValidation(): void {
     const validation = this.validateConfiguration(this.config);
@@ -66,7 +67,10 @@ class ConfigManager {
   }
 
   /**
-   * Clone profond d'une configuration en gérant correctement les RegExp
+   * Deep clones a configuration object, properly handling RegExp objects
+   * Ensures that RegExp patterns are recreated with correct source and flags
+   * @param config The configuration object to clone
+   * @returns A deep copy of the configuration with properly cloned RegExp objects
    */
   private deepCloneConfig(config: Config): Config {
     return {
@@ -88,7 +92,13 @@ class ConfigManager {
   }
 
   /**
-   * Valide la configuration et retourne les erreurs
+   * Validates the configuration and returns validation errors
+   * Checks for:
+   * - Exactly one default group
+   * - No duplicate group orders
+   * - No duplicate group names
+   * @param config The configuration to validate
+   * @returns Object containing validation status and error messages
    */
   private validateConfiguration(config: Config): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
@@ -120,18 +130,68 @@ class ConfigManager {
   }
 
 
+  /**
+   * Gets the current configuration
+   * Returns the base configuration without dynamic subfolder groups
+   * @returns The current configuration object
+   * @example
+   * ```typescript
+   * const config = configManager.getConfig();
+   * console.log(config.debug); // false
+   * console.log(config.groups.length); // Number of base groups
+   * ```
+   */
   public getConfig(): Config {
     return this.config;
   }
 
+  /**
+   * Checks if the current configuration is valid
+   * Configuration is considered invalid if it has validation errors like
+   * duplicate group names, multiple default groups, or duplicate orders
+   * @returns True if the configuration is valid, false otherwise
+   * @example
+   * ```typescript
+   * if (!configManager.isConfigurationValid()) {
+   *   const errors = configManager.getValidationErrors();
+   *   console.error('Config errors:', errors);
+   * }
+   * ```
+   */
   public isConfigurationValid(): boolean {
     return this.isValid;
   }
 
+  /**
+   * Gets the validation errors for the current configuration
+   * Returns detailed error messages about configuration issues
+   * @returns Array of validation error messages (empty if valid)
+   * @example
+   * ```typescript
+   * const errors = configManager.getValidationErrors();
+   * if (errors.length > 0) {
+   *   errors.forEach(error => console.error(error));
+   * }
+   * ```
+   */
   public getValidationErrors(): string[] {
     return [...this.validationErrors];
   }
 
+  /**
+   * Gets all groups including dynamically generated subfolder groups
+   * Combines base configuration groups with registered app subfolder groups
+   * Groups are sorted by order, then by default status, then by name
+   * @returns Array of all groups sorted by order and name
+   * @example
+   * ```typescript
+   * const groups = configManager.getGroups();
+   * // groups might include: [External, Internal, @app/auth, @app/utils, Misc]
+   * groups.forEach(group => {
+   *   console.log(`${group.name}: order ${group.order}, default: ${group.isDefault}`);
+   * });
+   * ```
+   */
   public getGroups(): Config['groups'] {
     const baseGroups = this.config.groups.map(g => ({
       ...g,
@@ -154,6 +214,17 @@ class ConfigManager {
     return combinedGroups;
   }
 
+  /**
+   * Registers a new app subfolder as a dynamic group
+   * Creates a new import group for the specified app subfolder with pattern @app/{subfolder}
+   * The group inherits the order from the 'Internal' group or defaults to order 2
+   * @param subfolder The subfolder name to register (e.g., 'auth', 'utils')
+   * @example
+   * ```typescript
+   * configManager.registerAppSubfolder('auth');
+   * // Creates group: { name: '@app/auth', match: /^@app\/auth/, order: 2, isDefault: false }
+   * ```
+   */
   public registerAppSubfolder(subfolder: string): void {
     if (subfolder && !this.subfolders.has(subfolder)) {
       const internalGroupOrder = this.config.groups.find(g => g.name === 'Internal')?.order ?? 2;
@@ -170,7 +241,15 @@ class ConfigManager {
   }
 
   /**
-   * Parse une chaîne RegExp du format "/pattern/flags" ou "pattern"
+   * Parses a RegExp string in format "/pattern/flags" or "pattern"
+   * Handles both slash-delimited regex strings with flags and plain patterns
+   * @param regexStr The regex string to parse
+   * @returns Parsed RegExp object or undefined if parsing fails
+   * @example
+   * ```typescript
+   * parseRegexString('/^@app\/(.*)/i') // Returns: /^@app\/(.*)/i
+   * parseRegexString('^@app') // Returns: /^@app/
+   * ```
    */
   private parseRegexString(regexStr: string): RegExp | undefined {
     if (!regexStr) {return undefined;}
@@ -200,6 +279,17 @@ class ConfigManager {
     }
   }
 
+  /**
+   * Loads configuration from VS Code workspace settings
+   * Reads all TidyJS settings from VS Code configuration and updates internal state
+   * Validates the loaded configuration and fires change events if updates occur
+   * Handles settings for groups, format options, import order, patterns, and excluded folders
+   * @example
+   * ```typescript
+   * // Called automatically on startup and when settings change
+   * configManager.loadConfiguration();
+   * ```
+   */
   public loadConfiguration(): void {
     const vsConfig = vscode.workspace.getConfiguration('tidyjs');
     let hasChanges = false;
@@ -301,7 +391,10 @@ class ConfigManager {
   }
 
   /**
-   * Convertit les groupes en format comparable (pour détecter les changements)
+   * Converts groups to comparable format (for change detection)
+   * Extracts only the comparable properties to detect configuration changes
+   * @param groups The groups array to convert
+   * @returns Array of comparable group objects
    */
   private groupsToComparable(groups: Config['groups']) {
     return groups.map(g => ({
@@ -314,7 +407,10 @@ class ConfigManager {
   }
 
   /**
-   * Applique les changements de configuration sans auto-réparation
+   * Applies configuration changes without auto-repair
+   * Validates the new configuration and updates internal state if valid
+   * Clears subfolder cache and fires change events
+   * @param newConfig The new configuration to apply
    */
   private applyConfigurationChanges(newConfig: Config): void {
     const validation = this.validateConfiguration(newConfig);
@@ -335,7 +431,8 @@ class ConfigManager {
   }
 
   /**
-   * Vide le cache des sous-dossiers
+   * Clears the subfolder cache
+   * Removes all registered app subfolder groups from memory
    */
   private clearSubfolders(): void {
     if (this.subfolders.size > 0) {
@@ -345,7 +442,12 @@ class ConfigManager {
   }
 
   /**
-   * Émet un événement de changement de configuration
+   * Fires a configuration change event
+   * Notifies all subscribers about configuration changes with validation status
+   * @param configKey The configuration key that changed
+   * @param newValue The new configuration value
+   * @param isValid Whether the new configuration is valid
+   * @param errors Optional validation error messages
    */
   private fireConfigChangeEvent(configKey: string, newValue: unknown, isValid: boolean, errors?: string[]): void {
     this.eventEmitter.fire({
@@ -356,6 +458,18 @@ class ConfigManager {
     });
   }
 
+  /**
+   * Gets configuration optimized for the parser with all groups included
+   * Returns the base configuration enhanced with all registered subfolder groups
+   * This is the configuration that should be used by the import parser
+   * @returns Configuration object with dynamic groups included
+   * @example
+   * ```typescript
+   * const parserConfig = configManager.getParserConfig();
+   * // parserConfig.groups includes both base groups and @app/* subfolders
+   * const parser = new ImportParser(parserConfig);
+   * ```
+   */
   public getParserConfig(): Config {
     return {
       ...this.getConfig(),
@@ -364,7 +478,13 @@ class ConfigManager {
   }
 
   /**
-   * Force le rechargement de la configuration
+   * Forces a reload of the configuration from VS Code settings
+   * Manually triggers configuration loading, useful when settings may have changed externally
+   * @example
+   * ```typescript
+   * // Force reload after manual settings file changes
+   * configManager.forceReload();
+   * ```
    */
   public forceReload(): void {
     logDebug('Force reloading configuration...');
@@ -372,7 +492,22 @@ class ConfigManager {
   }
 
   /**
-   * Souscrit aux changements de configuration avec validation
+   * Subscribes to configuration changes with validation
+   * Registers a callback to be notified when configuration changes occur
+   * The callback receives the new configuration, validation status, and any errors
+   * @param callback Function called when configuration changes occur
+   * @returns Disposable to unsubscribe from the event
+   * @example
+   * ```typescript
+   * const disposable = configManager.onConfigChange((config, isValid, errors) => {
+   *   if (!isValid) {
+   *     console.error('Config validation failed:', errors);
+   *   } else {
+   *     console.log('Config updated successfully');
+   *   }
+   * });
+   * // Later: disposable.dispose();
+   * ```
    */
   public onConfigChange(callback: (config: Config, isValid: boolean, errors?: string[]) => void): vscode.Disposable {
     return this.onDidConfigChange(event => {

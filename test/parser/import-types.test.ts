@@ -46,14 +46,25 @@ describe('ImportParser - Import Types Detection', () => {
     expect(result.groups[0].imports[0].defaultImport).toBeUndefined();
   });
 
-  test('should detect mixed import type (default + named)', () => {
-    const sourceCode = 'import React, { Component, useState } from "react";';
+  test('should split mixed import into separate default and named imports', () => {
+    const sourceCode = 'import React, { Component, useState, useEffect, memo, lazy } from "react";';
     const result = parser.parse(sourceCode);
     
-    expect(result.groups[0].imports[0].type).toBe('mixed');
+    expect(result.groups[0].imports).toHaveLength(2);
+    
+    // First import should be default
+    expect(result.groups[0].imports[0].type).toBe('default');
     expect(result.groups[0].imports[0].defaultImport).toBe('React');
-    expect(result.groups[0].imports[0].specifiers).toContain('Component');
-    expect(result.groups[0].imports[0].specifiers).toContain('useState');
+    expect(result.groups[0].imports[0].specifiers).toEqual(['React']);
+    
+    // Second import should be named
+    expect(result.groups[0].imports[1].type).toBe('named');
+    expect(result.groups[0].imports[1].specifiers).toContain('Component');
+    expect(result.groups[0].imports[1].specifiers).toContain('useState');
+    expect(result.groups[0].imports[1].specifiers).toContain('useEffect');
+    expect(result.groups[0].imports[1].specifiers).toContain('memo');
+    expect(result.groups[0].imports[1].specifiers).toContain('lazy');
+    expect(result.groups[0].imports[1].defaultImport).toBeUndefined();
   });
 
   test('should detect side effect import type', () => {

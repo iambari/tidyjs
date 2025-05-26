@@ -18,7 +18,7 @@ export type ConfigImportGroup = {
     }
 );
 
-export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "sideEffect" | "mixed";
+export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "sideEffect";
 export type ImportSource = string;
 export type ImportSpecifier = string;
 
@@ -48,7 +48,6 @@ const DEFAULT_PARSER_SETTINGS: InternalProcessedConfig = {
     named: 2,
     typeDefault: 3,
     typeNamed: 4,
-    mixed: 1,
   },
   importGroups: [],
 };
@@ -222,7 +221,50 @@ export class ImportParser {
             }
 
             if (hasDefault && (hasNamed || hasNamespace)) {
-              type = "mixed";
+              // Split mixed imports into separate default and named imports
+              const { groupName, isPriority } = this.determineGroup(source);
+              const raw = this.sourceCode.substring(importNode.range?.[0] || 0, importNode.range?.[1] || 0);
+              
+              // Create default import
+              imports.push({
+                type: "default",
+                source,
+                specifiers: [defaultImport!],
+                defaultImport,
+                raw,
+                groupName,
+                isPriority,
+                sourceIndex: imports.length,
+              });
+              
+              // Create named/namespace import
+              if (hasNamed) {
+                imports.push({
+                  type: "named",
+                  source,
+                  specifiers,
+                  defaultImport: undefined,
+                  raw,
+                  groupName,
+                  isPriority,
+                  sourceIndex: imports.length,
+                });
+              }
+              
+              if (hasNamespace) {
+                imports.push({
+                  type: "default", // namespace imports are treated as default
+                  source,
+                  specifiers,
+                  defaultImport: undefined,
+                  raw,
+                  groupName,
+                  isPriority,
+                  sourceIndex: imports.length,
+                });
+              }
+              
+              continue; // Skip the normal processing below
             } else if (hasDefault) {
               type = "default";
               if (defaultImport) {
@@ -365,7 +407,3 @@ export class ImportParser {
   }
 }
 
-export function parseImports(sourceCode: string, config: ExtensionGlobalConfig): ParserResult {
-  const parser = new ImportParser(config);
-  return parser.parse(sourceCode);
-}

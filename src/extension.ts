@@ -9,64 +9,13 @@ import { debounce } from "lodash";
 
 let parser: ImportParser | null = null;
 let isExtensionEnabled = false;
-
 let isFormatting = false;
-const formattingQueue: (() => void)[] = [];
-const documentVersions = new WeakMap<import("vscode").TextDocument, number>();
 
 /**
- * Process the formatting queue
+ * Simple check if document can be formatted
  */
-function processFormattingQueue(): void {
-  if (formattingQueue.length > 0 && !isFormatting) {
-    const nextTask = formattingQueue.shift();
-    if (nextTask) {
-      nextTask();
-    }
-  }
-}
-
-/**
- * Check if document is in a stable state for formatting
- */
-function isDocumentStableForFormatting(document: import("vscode").TextDocument): boolean {
-  if (document.isDirty && document.isUntitled) {
-    return false;
-  }
-
-  const lastVersion = documentVersions.get(document) || 0;
-  const currentVersion = document.version;
-
-  if (currentVersion === lastVersion) {
-    return true;
-  }
-
-  documentVersions.set(document, currentVersion);
-
-  if (currentVersion - lastVersion > 1) {
-    logDebug("Document version changed rapidly, waiting for stability");
-    return false;
-  }
-
-  return true;
-}
-
-/**
- * Wait for document to be stable
- */
-async function waitForDocumentStability(document: import("vscode").TextDocument, maxWait = 500): Promise<boolean> {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < maxWait) {
-    if (isDocumentStableForFormatting(document)) {
-      return true;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-
-  logDebug("Document stability timeout reached");
-  return false;
+function canFormatDocument(document: import("vscode").TextDocument): boolean {
+  return !(document.isDirty && document.isUntitled);
 }
 
 /**
@@ -207,14 +156,8 @@ async function applyDocumentUpdate(
     return false;
   }
 
-  const isStable = await waitForDocumentStability(document, 300);
-  if (!isStable) {
-    logDebug(`Document update skipped: document not stable (${source})`);
-    return false;
-  }
-
-  if (document.isDirty && document.isUntitled) {
-    logDebug(`Document update skipped: document is dirty and untitled (${source})`);
+  if (!canFormatDocument(document)) {
+    logDebug(`Document update skipped: document cannot be formatted (${source})`);
     return false;
   }
 
@@ -250,8 +193,6 @@ async function applyDocumentUpdate(
         .then((success) => {
           if (success) {
             logDebug(`Successfully updated document (${source})`);
-
-            documentVersions.set(document, document.version + 1);
           } else {
             showMessage.warning(`Failed to update document (${source})`);
           }
@@ -313,8 +254,6 @@ function isDocumentInExcludedFolder(document: import("vscode").TextDocument): bo
 async function formatImportsCommand(source = "manual"): Promise<void> {
   if (isFormatting) {
     logDebug(`Skipping ${source} format operation - already formatting`);
-
-    formattingQueue.push(() => formatImportsCommand(source));
     return;
   }
 
@@ -327,7 +266,6 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
   const editor = window.activeTextEditor;
   if (!editor) {
     showMessage.warning("No active editor found");
-    processFormattingQueue();
     return;
   }
 
@@ -338,14 +276,11 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
     if (source === "manual") {
       logDebug("Import formatting is disabled for this folder");
     }
-    processFormattingQueue();
     return;
   }
 
-  const isStable = await waitForDocumentStability(document, 500);
-  if (!isStable) {
-    logDebug(`Format operation skipped: document not stable (${source})`);
-    processFormattingQueue();
+  if (!canFormatDocument(document)) {
+    logDebug(`Format operation skipped: document cannot be formatted (${source})`);
     return;
   }
 
@@ -353,7 +288,6 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
 
   if (containsSuspiciousContent(documentText)) {
     logDebug(`Format operation skipped: suspicious content detected (${source})`);
-    processFormattingQueue();
     return;
   }
 
@@ -428,7 +362,6 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
     isFormatting = false;
     logDebug(`Finished ${source} format operation`);
 
-    setTimeout(() => processFormattingQueue(), 100);
   }
 }
 
@@ -438,16 +371,12 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
 const debouncedFormatImportsCommand = debounce(() => {
   if (!isFormatting) {
     formatImportsCommand("manual");
-  } else {
-    formattingQueue.push(() => formatImportsCommand("manual"));
   }
 }, 600);
 
 const debouncedFormatOnSaveCommand = debounce(() => {
   if (!isFormatting) {
     formatImportsCommand("auto-save");
-  } else {
-    formattingQueue.push(() => formatImportsCommand("auto-save"));
   }
 }, 800);
 /**

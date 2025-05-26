@@ -54,6 +54,3 @@ export function logError(message: string, ...args: unknown[]): void {
   OUTPUT_CHANNEL.show();
 }
 
-export function showOutputChannel(): void {
-  OUTPUT_CHANNEL.show();
-}

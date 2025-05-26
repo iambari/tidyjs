@@ -272,4 +272,46 @@ describe('ImportParser - Configuration Handling', () => {
     expect(result.groups).toHaveLength(1);
     expect(result.groups[0].imports[0].source).toBe('react');
   });
+
+  test('should handle excludedFolders configuration', () => {
+    const excludedFoldersConfig: Config = {
+      ...baseConfig,
+      excludedFolders: ['node_modules', 'dist', 'build']
+    };
+
+    const parser = new ImportParser(excludedFoldersConfig);
+    const sourceCode = 'import React from "react";';
+    const result = parser.parse(sourceCode);
+    
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups[0].imports[0].source).toBe('react');
+  });
+
+  test('should handle empty excludedFolders configuration', () => {
+    const emptyExcludedConfig: Config = {
+      ...baseConfig,
+      excludedFolders: []
+    };
+
+    const parser = new ImportParser(emptyExcludedConfig);
+    const sourceCode = 'import React from "react";';
+    const result = parser.parse(sourceCode);
+    
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups[0].imports[0].source).toBe('react');
+  });
+
+  test('should handle undefined excludedFolders configuration', () => {
+    const undefinedExcludedConfig: Config = {
+      ...baseConfig,
+      excludedFolders: undefined
+    };
+
+    const parser = new ImportParser(undefinedExcludedConfig);
+    const sourceCode = 'import React from "react";';
+    const result = parser.parse(sourceCode);
+    
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups[0].imports[0].source).toBe('react');
+  });
 });

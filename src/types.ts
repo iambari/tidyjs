@@ -27,6 +27,8 @@ export interface Config {
   patterns?: {
     appModules?: RegExp;
   };
+
+  excludedFolders?: string[];
 }
 
 export interface FormattedImportGroup {

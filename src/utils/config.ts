@@ -34,6 +34,7 @@ const DEFAULT_CONFIG: Config = {
   patterns: {
     appModules: /^@app\/([a-zA-Z0-9_-]+)/,
   },
+  excludedFolders: [],
 };
 
 class ConfigManager {
@@ -94,6 +95,7 @@ class ConfigManager {
           ? new RegExp(config.patterns.appModules.source, config.patterns.appModules.flags) 
           : undefined,
       } : undefined,
+      excludedFolders: config.excludedFolders ? [...config.excludedFolders] : undefined,
     };
   }
 
@@ -321,6 +323,11 @@ class ConfigManager {
       const debug = vsConfig.get<boolean>('debug');
       if (debug !== undefined && newConfig.debug !== debug) {
         newConfig.debug = debug;
+        hasChanges = true;
+      }
+      const excludedFolders = vsConfig.get<string[]>('excludedFolders');
+      if (excludedFolders !== undefined && JSON.stringify(newConfig.excludedFolders) !== JSON.stringify(excludedFolders)) {
+        newConfig.excludedFolders = [...excludedFolders];
         hasChanges = true;
       }
       if (hasChanges) {

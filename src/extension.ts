@@ -298,6 +298,35 @@ function containsSuspiciousContent(text: string): boolean {
 }
 
 /**
+ * Check if the current document is in an excluded folder
+ */
+function isDocumentInExcludedFolder(document: import("vscode").TextDocument): boolean {
+  const config = configManager.getConfig();
+  const excludedFolders = config.excludedFolders;
+  
+  if (!excludedFolders || excludedFolders.length === 0) {
+    return false;
+  }
+
+  const documentPath = document.uri.fsPath;
+  const workspaceFolder = workspace.getWorkspaceFolder(document.uri);
+  
+  if (!workspaceFolder) {
+    return false;
+  }
+
+  const relativePath = workspace.asRelativePath(document.uri, false);
+  
+  return excludedFolders.some(excludedFolder => {
+    const normalizedExcludedPath = excludedFolder.replace(/[/\\]/g, '/');
+    const normalizedDocumentPath = relativePath.replace(/[/\\]/g, '/');
+    
+    return normalizedDocumentPath.startsWith(normalizedExcludedPath + '/') || 
+           normalizedDocumentPath === normalizedExcludedPath;
+  });
+}
+
+/**
  * Enhanced import formatting command with better concurrency control
  */
 async function formatImportsCommand(source: string = "manual"): Promise<void> {
@@ -322,6 +351,15 @@ async function formatImportsCommand(source: string = "manual"): Promise<void> {
   }
 
   const document = editor.document;
+
+  if (isDocumentInExcludedFolder(document)) {
+    logDebug(`Format operation skipped: document is in excluded folder (${source})`);
+    if (source === "manual") {
+      logDebug("Import formatting is disabled for this folder");
+    }
+    processFormattingQueue();
+    return;
+  }
 
   const isStable = await waitForDocumentStability(document, 500);
   if (!isStable) {
@@ -474,6 +512,11 @@ export function activate(context: ExtensionContext): void {
 
     const handleFormatOnSave = (document: import("vscode").TextDocument) => {
       if (configManager.getConfig().format.onSave) {
+        if (isDocumentInExcludedFolder(document)) {
+          logDebug("Format on save skipped: document is in excluded folder");
+          return;
+        }
+        
         const editor = window.activeTextEditor;
         if (editor && editor.document === document) {
           if (ensureValidConfiguration()) {

@@ -175,6 +175,15 @@
           "type": "string",
           "default": "^@app\\/([a-zA-Z0-9_-]+)",
           "description": "Regex pattern to match application modules"
+        },
+        "tidyjs.excludedFolders": {
+          "type": "array",
+          "default": [],
+          "description": "List of folder paths where import formatting should be disabled",
+          "items": {
+            "type": "string",
+            "description": "Folder path relative to workspace root (e.g., 'node_modules', 'dist', 'build')"
+          }
         }
       }
     }

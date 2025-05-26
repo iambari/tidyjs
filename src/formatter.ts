@@ -7,6 +7,8 @@ import {
     FormattedImportGroup
 }                        from './types';
 import { parse }         from '@babel/parser';
+import { parse as parseTypeScript } from '@typescript-eslint/parser';
+import { TSESTree } from '@typescript-eslint/types';
 import { logDebug } from './utils/log';
 import {
     logError,
@@ -429,9 +431,9 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
 }
 
 /**
- * Enhanced findImportsWithBabel with better error detection and handling
+ * Enhanced findImportsWithTypeScriptParser using @typescript-eslint/parser for better accuracy
  */
-async function findImportsWithBabel(sourceText: string): Promise<{ start: number; end: number; error?: string } | null> {
+async function findImportsWithTypeScriptParser(sourceText: string): Promise<{ start: number; end: number; error?: string } | null> {
   try {
     if (!sourceText || typeof sourceText !== 'string') {
       return { start: 0, end: 0 };
@@ -439,62 +441,155 @@ async function findImportsWithBabel(sourceText: string): Promise<{ start: number
     if (sourceText.trim().length === 0) {
       return { start: 0, end: 0 };
     }
-    const suspiciousPatterns = [
-      {
-        pattern: /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
-        message: 'ISO timestamp detected in source code'
-      },
-      {
-        pattern: /\[\d{4}-\d{2}-\d{2}T/,
-        message: 'Timestamp in log format detected'
-      },
-      {
-        pattern: /\d+[a-zA-Z_$](?!\w*['"`])/,
-        message: 'Number directly followed by identifier'
-      },
-      {
-        pattern: /import\s*\d/,
-        message: 'Import followed by number'
-      },
-      {
-        pattern: /from\s*\d/,
-        message: 'From keyword followed by number'
-      },
-      {
-        pattern: /import\s*{\s*default\s*}\s*from/,
-        message: 'Invalid default import syntax'
-      },
-      {
-        pattern: /import\s*{\s*}\s*from/,
-        message: 'Empty import braces'
-      },
-      {
-        pattern: /import\s*{[^}]*{/,
-        message: 'Nested braces in import'
-      }
-    ];
 
-    for (const { pattern, message } of suspiciousPatterns) {
-      const match = pattern.exec(sourceText);
-      if (match) {
-        const line = sourceText.substring(0, match.index).split('\n').length;
-        const column = match.index - sourceText.lastIndexOf('\n', match.index - 1);
+    let ast: TSESTree.Program;
+    try {
+      ast = parseTypeScript(sourceText, {
+        ecmaVersion: 2020,
+        sourceType: 'module',
+        jsx: true,
+        errorOnUnknownASTType: false,
+        errorOnTypeScriptSyntacticAndSemanticIssues: false,
+      });
+    } catch (parseError) {
+      const parseMessage = parseError instanceof Error ? parseError.message : String(parseError);
+      logError('TypeScript parser failed:', parseError);
+      
+      // Fallback to basic validation
+      return validateImportSectionBasic(sourceText);
+    }
+
+    let firstImportStart = -1;
+    let lastImportEnd = -1;
+    let hasImports = false;
+    const importPositions: Array<{ start: number; end: number }> = [];
+
+    // Extract import declarations using TypeScript AST
+    for (const node of ast.body) {
+      if (node.type === 'ImportDeclaration') {
+        hasImports = true;
         
-        logError(`Suspicious content detected: ${message}`, {
-          match: match[0],
-          line,
-          column,
-          context: sourceText.substring(Math.max(0, match.index - 20), match.index + 20)
-        });
+        const startPos = node.range?.[0] ?? -1;
+        const endPos = node.range?.[1] ?? -1;
         
-        return {
-          start: 0,
-          end: 0,
-          error: `Syntax error at line ${line}, column ${column}: ${message} ("${match[0]}")`,
-        };
+        if (startPos >= 0 && endPos >= 0 && startPos < sourceText.length && endPos <= sourceText.length && startPos < endPos) {
+          const importText = sourceText.substring(startPos, endPos);
+          if (importText.includes('import')) {
+            importPositions.push({ start: startPos, end: endPos });
+            
+            if (firstImportStart === -1 || startPos < firstImportStart) {
+              firstImportStart = startPos;
+            }
+            if (lastImportEnd === -1 || endPos > lastImportEnd) {
+              lastImportEnd = endPos;
+            }
+          }
+        }
       }
     }
-    const commonIssues = [
+
+    if (!hasImports || firstImportStart === -1 || lastImportEnd === -1 || importPositions.length === 0) {
+      return { start: 0, end: 0 };
+    }
+
+    // Validate the detected import section
+    const detectedImportSection = sourceText.substring(firstImportStart, lastImportEnd);
+    if (!detectedImportSection.includes('import')) {
+      logDebug('No import keyword found in detected range, returning empty range');
+      return { start: 0, end: 0 };
+    }
+
+    let adjustedStartPosition = findActualImportStart(sourceText, firstImportStart);
+    adjustedStartPosition = Math.max(0, adjustedStartPosition);
+    
+    if (adjustedStartPosition >= lastImportEnd || adjustedStartPosition >= sourceText.length) {
+      logDebug('Invalid range detected, falling back to original positions');
+      adjustedStartPosition = firstImportStart;
+    }
+
+    logDebug('Successfully detected import range with TypeScript parser:', {
+      start: adjustedStartPosition,
+      end: lastImportEnd,
+      length: lastImportEnd - adjustedStartPosition,
+      importsCount: importPositions.length
+    });
+
+    return {
+      start: adjustedStartPosition,
+      end: lastImportEnd,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logError('Error in findImportsWithTypeScriptParser:', error);
+    
+    // Fallback to basic validation
+    return validateImportSectionBasic(sourceText);
+  }
+}
+
+/**
+ * Fallback function for basic import section validation
+ */
+function validateImportSectionBasic(sourceText: string): { start: number; end: number; error?: string } | null {
+  try {
+    const lines = sourceText.split('\n');
+    let firstImportLine = -1;
+    let lastImportLine = -1;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('import ') && (line.includes('from ') || line.includes("'") || line.includes('"'))) {
+        if (firstImportLine === -1) {
+          firstImportLine = i;
+        }
+        lastImportLine = i;
+      }
+    }
+    
+    if (firstImportLine === -1 || lastImportLine === -1) {
+      return { start: 0, end: 0 };
+    }
+    
+    let start = 0;
+    for (let i = 0; i < firstImportLine; i++) {
+      start += lines[i].length + 1;
+    }
+    
+    let end = start;
+    for (let i = firstImportLine; i <= lastImportLine; i++) {
+      end += lines[i].length + 1;
+    }
+    
+    return { start, end: end - 1 };
+  } catch (error) {
+    return {
+      start: 0,
+      end: 0,
+      error: 'Failed to analyze import section'
+    };
+  }
+}
+
+/**
+ * Enhanced findImportsWithBabel with better error detection and handling
+ */
+async function findImportsWithBabel(sourceText: string): Promise<{ start: number; end: number; error?: string } | null> {
+  // Try TypeScript parser first for better accuracy
+  const tsResult = await findImportsWithTypeScriptParser(sourceText);
+  if (tsResult && !tsResult.error) {
+    return tsResult;
+  }
+
+  try {
+    if (!sourceText || typeof sourceText !== 'string') {
+      return { start: 0, end: 0 };
+    }
+    if (sourceText.trim().length === 0) {
+      return { start: 0, end: 0 };
+    }
+
+    // Simplified validation - only check for truly problematic patterns
+    const criticalIssues = [
       {
         check: () => sourceText.includes('import { default }'),
         message: 'Invalid default import without variable name'
@@ -509,9 +604,9 @@ async function findImportsWithBabel(sourceText: string): Promise<{ start: number
       }
     ];
 
-    for (const { check, message } of commonIssues) {
+    for (const { check, message } of criticalIssues) {
       if (check()) {
-        logError(`Common parsing issue detected: ${message}`);
+        logError(`Critical parsing issue detected: ${message}`);
         return {
           start: 0,
           end: 0,
@@ -675,7 +770,7 @@ async function findImportsWithBabel(sourceText: string): Promise<{ start: number
 }
 
 /**
- * Enhanced validation for import sections
+ * Enhanced validation for import sections using AST-based approach
  */
 function isValidImportSection(importSection: string): boolean {
   if (!importSection || typeof importSection !== 'string') {
@@ -686,53 +781,61 @@ function isValidImportSection(importSection: string): boolean {
   if (trimmed.length === 0) {
     return true; // Empty section is valid
   }
+
   const hasImportKeyword = /\bimport\b/.test(importSection);
   if (!hasImportKeyword) {
     return false;
   }
-  const invalidPatterns = [
-    {
-      pattern: /\d+[a-zA-Z_$]/,
-      description: 'number directly followed by identifier'
-    },
-    {
-      pattern: /import\s*\d/,
-      description: 'import followed by number'
-    },
-    {
-      pattern: /from\s*\d/,
-      description: 'from followed by number'
-    },
-    {
-      pattern: /import\s*['"]\s*$/,
-      description: 'incomplete import statement'
-    },
+
+  // Try to parse with TypeScript parser for validation
+  try {
+    const ast = parseTypeScript(importSection, {
+      ecmaVersion: 2020,
+      sourceType: 'module',
+      jsx: true,
+      errorOnUnknownASTType: false,
+      errorOnTypeScriptSyntacticAndSemanticIssues: false,
+    });
+
+    // Check if we have valid import declarations
+    const hasValidImports = ast.body.some(node => node.type === 'ImportDeclaration');
+    return hasValidImports;
+  } catch (error) {
+    // If TypeScript parser fails, fall back to basic validation
+    logDebug('TypeScript validation failed, using basic validation');
+  }
+
+  // Basic syntax validation as fallback
+  const criticalPatterns = [
     {
       pattern: /import\s*{\s*default\s*}\s*from/,
       description: 'invalid default import syntax'
     },
     {
-      pattern: /import\s*{\s*}\s*from/,
-      description: 'empty import braces'
+      pattern: /import\s*{\s*,/,
+      description: 'leading comma in import destructuring'
     },
     {
-      pattern: /\d{4}-\d{2}-\d{2}T/,
-      description: 'timestamp in import section'
+      pattern: /import\s*{[^}]*,\s*}\s*from/,
+      description: 'trailing comma in import destructuring'
     }
   ];
 
-  for (const { pattern, description } of invalidPatterns) {
+  for (const { pattern, description } of criticalPatterns) {
     if (pattern.test(importSection)) {
       logError(`Invalid import section detected: ${description}`);
       return false;
     }
   }
+
+  // Check for balanced braces and quotes
   const openBraces = (importSection.match(/{/g) || []).length;
   const closeBraces = (importSection.match(/}/g) || []).length;
   if (openBraces !== closeBraces) {
     logError('Unbalanced braces in import section');
     return false;
   }
+
   const singleQuotes = (importSection.match(/'/g) || []).length;
   const doubleQuotes = (importSection.match(/"/g) || []).length;
   if (singleQuotes % 2 !== 0 || doubleQuotes % 2 !== 0) {

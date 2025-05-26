@@ -1,7 +1,9 @@
-import traverse          from '@babel/traverse';
-import type { NodePath } from '@babel/traverse';
+// Misc
+import traverse                   from '@babel/traverse';
+import type { NodePath }          from '@babel/traverse';
 import type { ImportDeclaration } from '@babel/types';
-const babelTraverse = typeof traverse === 'function' ? traverse : (traverse as any).default;
+
+const babelTraverse = typeof traverse === 'function' ? traverse : (traverse as { default: typeof traverse }).default;
 import {
     Config,
     FormattedImportGroup
@@ -56,7 +58,7 @@ function alignMultilineFromKeyword(line: string, fromIndex: number, maxFromIndex
   }
 
   const closeBraceIndex = lastLine.indexOf('}');
-  if (closeBraceIndex === -1) return line;
+  if (closeBraceIndex === -1) {return line;}
 
   const beforeContent = lastLine.substring(0, closeBraceIndex + 1);
   const exactSpaces = maxFromIndex - (closeBraceIndex + 1);
@@ -122,7 +124,7 @@ function alignImportsInGroup(importLines: string[]): string[] {
 
   return importLines.map((line, i) => {
     const info = lineInfos[i];
-    if (info.fromIndex === -1) return line;
+    if (info.fromIndex === -1) {return line;}
 
     return info.isMultiline ? alignMultilineFromKeyword(line, info.fromIndex, globalMaxFromPosition) : alignFromKeyword(line, info.fromIndex, globalMaxFromPosition);
   });
@@ -312,12 +314,10 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
       importsOnly.push(line);
     }
 
-    interface GroupedImports {
-      [groupName: string]: {
+    type GroupedImports = Record<string, {
         order: number;
         imports: ParsedImport[];
-      };
-    }
+      }>;
 
     const importsByGroup: GroupedImports = {};
     const importOrder = config.importOrder || {
@@ -362,8 +362,8 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
       }
 
       const resolveTypeKey = (type: string) => {
-        if (type === 'typeNamed' || type === 'typeDefault') return 'typeOnly';
-        if (type === 'mixed') return 'default'; // Treat mixed imports like default imports
+        if (type === 'typeNamed' || type === 'typeDefault') {return 'typeOnly';}
+        if (type === 'mixed') {return 'default';} // Treat mixed imports like default imports
         return type;
       };
 
@@ -372,15 +372,15 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
         const typeB = resolveTypeKey(b.type);
 
         const typeCompare = (importOrder[typeA as keyof typeof importOrder] ?? 0) - (importOrder[typeB as keyof typeof importOrder] ?? 0);
-        if (typeCompare !== 0) return typeCompare;
+        if (typeCompare !== 0) {return typeCompare;}
 
         const isReactA = a.source.toLowerCase() === 'react';
         const isReactB = b.source.toLowerCase() === 'react';
-        if (isReactA && !isReactB) return -1;
-        if (!isReactA && isReactB) return 1;
+        if (isReactA && !isReactB) {return -1;}
+        if (!isReactA && isReactB) {return 1;}
 
         const sourceCompare = a.source.localeCompare(b.source);
-        if (sourceCompare !== 0) return sourceCompare;
+        if (sourceCompare !== 0) {return sourceCompare;}
 
         if ((a.type === 'named' || a.type === 'typeNamed') && (b.type === 'named' || b.type === 'typeNamed') && a.specifiers.length > 1 && b.specifiers.length > 1) {
           return a.specifiers[0].length - b.specifiers[0].length;
@@ -462,7 +462,7 @@ async function findImportsWithTypeScriptParser(sourceText: string): Promise<{ st
     let firstImportStart = -1;
     let lastImportEnd = -1;
     let hasImports = false;
-    const importPositions: Array<{ start: number; end: number }> = [];
+    const importPositions: { start: number; end: number }[] = [];
 
     // Extract import declarations using TypeScript AST
     for (const node of ast.body) {
@@ -652,7 +652,7 @@ async function findImportsWithBabel(sourceText: string): Promise<{ start: number
     let firstImportStart = -1;
     let lastImportEnd = -1;
     let hasImports = false;
-    const importPositions: Array<{ start: number; end: number }> = [];
+    const importPositions: { start: number; end: number }[] = [];
 
     try {
       babelTraverse(ast, {
@@ -892,8 +892,8 @@ function findActualImportStart(sourceText: string, firstImportStart: number): nu
  * @param column Numéro de colonne (0-indexed, optionnel)
  * @returns Position dans le texte (0-indexed)
  */
-function getPositionFromLine(text: string, line: number, column: number = 0): number {
-  if (line <= 0) return 0;
+function getPositionFromLine(text: string, line: number, column = 0): number {
+  if (line <= 0) {return 0;}
 
   const lines = text.split('\n');
   let position = 0;
@@ -936,7 +936,7 @@ async function formatImports(sourceText: string, config: Config, parserResult?: 
   }
 
   try {
-    let formattedText = formatImportsFromParser(sourceText, importRange, parserResult, config);
+    const formattedText = formatImportsFromParser(sourceText, importRange, parserResult, config);
 
     if (formattedText !== sourceText) {
       return { text: formattedText };
@@ -960,9 +960,9 @@ async function formatImports(sourceText: string, config: Config, parserResult?: 
  */
 export async function needsFormatting(sourceText: string, config: Config, parserResult?: ParserResult): Promise<boolean> {
   const importRange = await findImportsWithBabel(sourceText);
-  if (!importRange || importRange.start === importRange.end) return false;
+  if (!importRange || importRange.start === importRange.end) {return false;}
 
-  if (!parserResult) return false;
+  if (!parserResult) {return false;}
 
   try {
     const formatted = formatImportsFromParser(sourceText, importRange, parserResult, config);
@@ -970,7 +970,7 @@ export async function needsFormatting(sourceText: string, config: Config, parser
     const originalImportsSection = sourceText.substring(importRange.start, importRange.end);
 
     const formattedImportRange = await findImportsWithBabel(formatted);
-    if (!formattedImportRange) return false;
+    if (!formattedImportRange) {return false;}
 
     const formattedImportsSection = formatted.substring(formattedImportRange.start, formattedImportRange.end);
 

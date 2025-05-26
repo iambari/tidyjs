@@ -5,33 +5,13 @@ import type { ExtensionContext } from "vscode";
 import { configManager } from "./utils/config";
 import { logDebug, logError } from "./utils/log";
 import { getUnusedImports, removeUnusedImports, showMessage } from "./utils/misc";
+import { debounce } from "lodash";
 
 let parser = new ImportParser(configManager.getParserConfig());
 
 let isFormatting = false;
-let formattingQueue: Array<() => void> = [];
-let documentVersions = new WeakMap<import("vscode").TextDocument, number>();
-
-/**
- * Enhanced debouncer with queue management
- */
-function createEnhancedDebouncer<T extends (...args: any[]) => any>(func: T, delay: number): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  return (...args: Parameters<T>) => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    timeoutId = setTimeout(() => {
-      if (!isFormatting) {
-        func(...args);
-      } else {
-        formattingQueue.push(() => func(...args));
-      }
-    }, delay);
-  };
-}
+const formattingQueue: (() => void)[] = [];
+const documentVersions = new WeakMap<import("vscode").TextDocument, number>();
 
 /**
  * Process the formatting queue
@@ -73,7 +53,7 @@ function isDocumentStableForFormatting(document: import("vscode").TextDocument):
 /**
  * Wait for document to be stable
  */
-async function waitForDocumentStability(document: import("vscode").TextDocument, maxWait: number = 500): Promise<boolean> {
+async function waitForDocumentStability(document: import("vscode").TextDocument, maxWait = 500): Promise<boolean> {
   const startTime = Date.now();
 
   while (Date.now() - startTime < maxWait) {
@@ -218,7 +198,7 @@ async function applyDocumentUpdate(
   document: import("vscode").TextDocument,
   parserResult: ParserResult,
   formatterConfig: ReturnType<typeof configManager.getConfig>,
-  source: string = "unknown"
+  source = "unknown"
 ): Promise<boolean> {
   const editor = window.activeTextEditor;
   if (!editor || editor.document !== document) {
@@ -329,7 +309,7 @@ function isDocumentInExcludedFolder(document: import("vscode").TextDocument): bo
 /**
  * Enhanced import formatting command with better concurrency control
  */
-async function formatImportsCommand(source: string = "manual"): Promise<void> {
+async function formatImportsCommand(source = "manual"): Promise<void> {
   if (isFormatting) {
     logDebug(`Skipping ${source} format operation - already formatting`);
 
@@ -448,9 +428,21 @@ async function formatImportsCommand(source: string = "manual"): Promise<void> {
 /**
  * Enhanced debounced versions with longer delays to prevent rapid execution
  */
-const debouncedFormatImportsCommand = createEnhancedDebouncer(() => formatImportsCommand("manual"), 600);
-const debouncedFormatOnSaveCommand = createEnhancedDebouncer(() => formatImportsCommand("auto-save"), 800);
+const debouncedFormatImportsCommand = debounce(() => {
+  if (!isFormatting) {
+    formatImportsCommand("manual");
+  } else {
+    formattingQueue.push(() => formatImportsCommand("manual"));
+  }
+}, 600);
 
+const debouncedFormatOnSaveCommand = debounce(() => {
+  if (!isFormatting) {
+    formatImportsCommand("auto-save");
+  } else {
+    formattingQueue.push(() => formatImportsCommand("auto-save"));
+  }
+}, 800);
 /**
  * Gère la mise à jour de la configuration
  */

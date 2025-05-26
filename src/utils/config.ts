@@ -40,9 +40,9 @@ const DEFAULT_CONFIG: Config = {
 class ConfigManager {
   private config: Config;
   private eventEmitter: vscode.EventEmitter<ConfigChangeEvent> = new vscode.EventEmitter<ConfigChangeEvent>();
-  private subfolders: Map<string, Config['groups'][0]> = new Map();
+  private subfolders = new Map<string, Config['groups'][0]>();
   private validationErrors: string[] = [];
-  private isValid: boolean = true;
+  private isValid = true;
 
   public readonly onDidConfigChange: vscode.Event<ConfigChangeEvent> = this.eventEmitter.event;
 
@@ -199,8 +199,8 @@ class ConfigManager {
       if (a.order !== b.order) {
         return a.order - b.order;
       }
-      if (a.isDefault && !b.isDefault) return 1;
-      if (!a.isDefault && b.isDefault) return -1;
+      if (a.isDefault && !b.isDefault) {return 1;}
+      if (!a.isDefault && b.isDefault) {return -1;}
 
       return a.name.localeCompare(b.name);
     });
@@ -227,7 +227,7 @@ class ConfigManager {
    * Parse une chaîne RegExp du format "/pattern/flags" ou "pattern"
    */
   private parseRegexString(regexStr: string): RegExp | undefined {
-    if (!regexStr) return undefined;
+    if (!regexStr) {return undefined;}
 
     try {
       if (regexStr.startsWith('/') && regexStr.length > 1) {
@@ -260,12 +260,12 @@ class ConfigManager {
     
     try {
       const newConfig = this.deepCloneConfig(this.config);
-      const customGroupsSetting = vsConfig.get<Array<{
+      const customGroupsSetting = vsConfig.get<{
         name: string;
         match?: string;
         order: number;
         isDefault?: boolean;
-      }>>('groups');
+      }[]>('groups');
 
       if (customGroupsSetting !== undefined) {
         const newGroups = customGroupsSetting.map(group => ({
@@ -309,7 +309,7 @@ class ConfigManager {
       }
       const patternsSettings = vsConfig.get<{ appModules?: string }>('patterns');
       if (patternsSettings?.appModules !== undefined) {
-        if (!newConfig.patterns) newConfig.patterns = {};
+        if (!newConfig.patterns) {newConfig.patterns = {};}
         const newPattern = this.parseRegexString(patternsSettings.appModules);
         if (newPattern && (
           !newConfig.patterns.appModules ||

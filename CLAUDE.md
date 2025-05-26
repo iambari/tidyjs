@@ -16,6 +16,8 @@
 - Semicolons required
 - Import sorting priority: side effects → default → named → type default → type named
 - Use camelCase for variables and functions
+- Any type is forbidden the code must be strongly typed
+- Functions must have a return type
 - Format imports with TidyJS style (aligned 'from' keywords, grouped imports)
 - Imports follow group pattern defined in ConfigManager
 - Proper error handling with detailed logging via utils/log.ts

@@ -1,13 +1,13 @@
 export interface Config {
   debug?: boolean;
 
-  groups: Array<{
+  groups: {
     name: string;
     order: number;
     isDefault?: boolean;
     match?: RegExp;
     priority?: number;
-  }>;
+  }[];
 
   importOrder: {
     default: number;

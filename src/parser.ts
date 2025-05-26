@@ -22,21 +22,19 @@ export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "si
 export type ImportSource = string;
 export type ImportSpecifier = string;
 
-export type TypeOrder = {
-  [key in ImportType]: number;
-};
+export type TypeOrder = Record<ImportType, number>;
 
-export type FormattingOptions = {
+export interface FormattingOptions {
   quoteStyle?: "single" | "double";
   semicolons?: boolean;
   multilineIndentation?: number | "tab";
-};
+}
 
-type InternalProcessedConfig = {
+interface InternalProcessedConfig {
   importGroups: ConfigImportGroup[];
   typeOrder: TypeOrder;
   formatting: FormattingOptions;
-};
+}
 
 const DEFAULT_PARSER_SETTINGS: InternalProcessedConfig = {
   formatting: {
@@ -55,7 +53,7 @@ const DEFAULT_PARSER_SETTINGS: InternalProcessedConfig = {
   importGroups: [],
 };
 
-export type ParsedImport = {
+export interface ParsedImport {
   type: ImportType;
   source: ImportSource;
   specifiers: ImportSpecifier[];
@@ -64,29 +62,29 @@ export type ParsedImport = {
   groupName: string | null;
   isPriority: boolean;
   sourceIndex: number;
-};
+}
 
-export type ImportGroup = {
+export interface ImportGroup {
   name: string;
   order: number;
   imports: ParsedImport[];
-};
+}
 
-export type InvalidImport = {
+export interface InvalidImport {
   raw: string;
   error: string;
-};
+}
 
-export type ParserResult = {
+export interface ParserResult {
   groups: ImportGroup[];
   originalImports: string[];
   invalidImports?: InvalidImport[];
-};
+}
 
 export class ImportParser {
   private internalConfig: InternalProcessedConfig;
   private ast!: TSESTree.Program;
-  private sourceCode: string = "";
+  private sourceCode = "";
   private invalidImports: InvalidImport[] = [];
 
   constructor(extensionConfig: ExtensionGlobalConfig) {

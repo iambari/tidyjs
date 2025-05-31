@@ -78,6 +78,7 @@ export interface ParserResult {
   groups: ImportGroup[];
   originalImports: string[];
   invalidImports?: InvalidImport[];
+  importRange?: { start: number; end: number };
 }
 
 export class ImportParser {
@@ -152,15 +153,20 @@ export class ImportParser {
       this.ast = parse(sourceCode, {
         ecmaVersion: 2020,
         sourceType: "module",
+        jsx: true,
+        errorOnUnknownASTType: false,
+        errorOnTypeScriptSyntacticAndSemanticIssues: false,
       });
 
       const imports = this.extractImports();
       const groups = this.organizeImportsIntoGroups(imports);
+      const importRange = this.calculateImportRange();
 
       return {
         groups,
         originalImports: imports.map((imp) => imp.raw),
         invalidImports: this.invalidImports.length > 0 ? this.invalidImports : undefined,
+        importRange,
       };
     } catch (error) {
       this.invalidImports.push({
@@ -478,6 +484,100 @@ export class ImportParser {
     return Array.from(groupMap.values())
       .filter((group) => group.imports.length > 0)
       .sort((a, b) => a.order - b.order);
+  }
+
+  private calculateImportRange(): { start: number; end: number } | undefined {
+    const program = this.ast;
+    
+    if (!program || !program.body) {
+      return undefined;
+    }
+
+    let firstImportStart: number | undefined;
+    let lastImportEnd: number | undefined;
+
+    for (const node of program.body) {
+      if (node.type === "ImportDeclaration" && node.range) {
+        const [start, end] = node.range;
+        
+        if (firstImportStart === undefined || start < firstImportStart) {
+          firstImportStart = start;
+        }
+        
+        if (lastImportEnd === undefined || end > lastImportEnd) {
+          lastImportEnd = end;
+        }
+      }
+    }
+
+    if (firstImportStart !== undefined && lastImportEnd !== undefined) {
+      // Include preceding comments and empty lines
+      const adjustedStart = this.findActualImportStart(firstImportStart);
+      return { start: adjustedStart, end: lastImportEnd };
+    }
+
+    return undefined;
+  }
+
+  private findActualImportStart(firstImportStart: number): number {
+    const lines = this.sourceCode.split('\n');
+    let currentPos = 0;
+    let importLineIndex = -1;
+    
+    // Find which line contains the first import
+    for (let i = 0; i < lines.length; i++) {
+      const lineEnd = currentPos + lines[i].length;
+      if (currentPos <= firstImportStart && firstImportStart <= lineEnd) {
+        importLineIndex = i;
+        break;
+      }
+      currentPos = lineEnd + 1; // +1 for the newline character
+    }
+
+    if (importLineIndex === -1) {
+      return firstImportStart;
+    }
+
+    let startLineIndex = importLineIndex;
+    let inMultilineComment = false;
+    
+    // Check if we're in the middle of a multiline comment at the import line
+    for (let i = 0; i < importLineIndex; i++) {
+      const line = lines[i];
+      if (line.includes('/*') && !line.includes('*/')) {
+        inMultilineComment = true;
+      } else if (line.includes('*/')) {
+        inMultilineComment = false;
+      }
+    }
+    
+    // Walk backwards to include all comments and empty lines
+    for (let i = importLineIndex - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      
+      if (line.includes('*/')) {
+        inMultilineComment = true;
+        startLineIndex = i;
+      } else if (line.includes('/*')) {
+        inMultilineComment = false;
+        startLineIndex = i;
+      } else if (inMultilineComment) {
+        startLineIndex = i;
+      } else if (line === '' || line.startsWith('//')) {
+        startLineIndex = i;
+      } else {
+        // Stop if we hit non-comment, non-empty content
+        break;
+      }
+    }
+
+    // Calculate position from start of line
+    let adjustedStart = 0;
+    for (let i = 0; i < startLineIndex; i++) {
+      adjustedStart += lines[i].length + 1; // +1 for newline
+    }
+
+    return adjustedStart;
   }
 }
 

@@ -1,14 +1,8 @@
 // Misc
-import traverse                   from '@babel/traverse';
-import type { NodePath }          from '@babel/traverse';
-import type { ImportDeclaration } from '@babel/types';
-
-const babelTraverse = typeof traverse === 'function' ? traverse : (traverse as { default: typeof traverse }).default;
 import {
     Config,
     FormattedImportGroup
 }                        from './types';
-import { parse }         from '@babel/parser';
 import { logDebug } from './utils/log';
 import {
     isEmptyLine,
@@ -34,8 +28,10 @@ function alignFromKeyword(line: string, fromIndex: number, maxFromIndex: number)
   const targetPadding = Math.max(maxFromIndex, prefix.length);
   const paddedPrefix = prefix.padEnd(targetPadding);
   const result = paddedPrefix + suffix;
-  if (/\d\s*[a-zA-Z_$]/.test(result) && !/\d\s+[a-zA-Z_$]/.test(result)) {
-    return result.replace(/(\d)(\s*)([a-zA-Z_$])/g, '$1 $3');
+  
+  // Check for invalid patterns like "123abc" or "123import" and fix them
+  if (/\d[a-zA-Z_$]/.test(result)) {
+    return result.replace(/(\d)([a-zA-Z_$])/g, '$1 $2');
   }
 
   return result;
@@ -59,7 +55,7 @@ function alignMultilineFromKeyword(line: string, fromIndex: number, maxFromIndex
   if (closeBraceIndex === -1) {return line;}
 
   const beforeContent = lastLine.substring(0, closeBraceIndex + 1);
-  const exactSpaces = maxFromIndex - (closeBraceIndex + 1);
+  const exactSpaces = Math.max(1, maxFromIndex - (closeBraceIndex + 1)); // Ensure at least 1 space
   const fromAndAfter = lastLine.substring(fromMatch.index);
 
   const newLastLine = beforeContent + ' '.repeat(exactSpaces) + fromAndAfter;
@@ -468,309 +464,8 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
 
 
 
-/**
- * Enhanced findImportsWithBabel with better error detection and handling
- */
-async function findImportsWithBabel(sourceText: string): Promise<{ start: number; end: number; error?: string } | null> {
-
-  try {
-    if (!sourceText || typeof sourceText !== 'string') {
-      return { start: 0, end: 0 };
-    }
-    if (sourceText.trim().length === 0) {
-      return { start: 0, end: 0 };
-    }
-
-    // Simplified validation - only check for truly problematic patterns
-    const criticalIssues = [
-      {
-        check: () => sourceText.includes('import { default }'),
-        message: 'Invalid default import without variable name'
-      },
-      {
-        check: () => /import\s*{\s*,/.test(sourceText),
-        message: 'Leading comma in import destructuring'
-      },
-      {
-        check: () => /import\s*{[^}]*,\s*}/.test(sourceText),
-        message: 'Trailing comma in import destructuring'
-      }
-    ];
-
-    for (const { check, message } of criticalIssues) {
-      if (check()) {
-        logError(`Critical parsing issue detected: ${message}`);
-        return {
-          start: 0,
-          end: 0,
-          error: `Syntax error: ${message}`,
-        };
-      }
-    }
-
-    let ast;
-    try {
-      ast = parse(sourceText, {
-        sourceType: 'module',
-        plugins: ['typescript', 'jsx', 'decorators-legacy'],
-        errorRecovery: true,
-        allowImportExportEverywhere: true,
-        allowReturnOutsideFunction: true,
-        strictMode: false,
-      });
-    } catch (parseError) {
-      const parseMessage = parseError instanceof Error ? parseError.message : String(parseError);
-      logError('Babel parsing failed:', parseError);
-      let specificError = 'Parse error: Unable to parse the file.';
-      
-      if (parseMessage.includes('Unexpected token')) {
-        specificError = 'Syntax error: Unexpected token. Check for missing semicolons, quotes, or brackets in your imports.';
-      } else if (parseMessage.includes('Invalid left-hand side')) {
-        specificError = 'Syntax error: Invalid import statement structure.';
-      } else if (parseMessage.includes('Unexpected end of input')) {
-        specificError = 'Syntax error: Incomplete import statement found.';
-      } else if (parseMessage.includes('Identifier directly after number')) {
-        specificError = 'Syntax error: Invalid identifier after number. This often indicates corrupted content.';
-      } else if (parseMessage.includes('Identifier expected')) {
-        specificError = 'Syntax error: Missing identifier in import statement.';
-      }
-      
-      return {
-        start: 0,
-        end: 0,
-        error: specificError,
-      };
-    }
-
-    let firstImportStart = -1;
-    let lastImportEnd = -1;
-    let hasImports = false;
-    const importPositions: { start: number; end: number }[] = [];
-
-    try {
-      // Add error recovery for babel traverse
-      const parseOptions = {
-        errorRecovery: true,
-        allowImportExportEverywhere: true,
-        allowReturnOutsideFunction: true,
-        strictMode: false,
-      };
-      
-      babelTraverse(ast, {
-        ImportDeclaration(path: NodePath<ImportDeclaration>) {
-          if (!path || !path.node || !path.node.source || typeof path.node.source.value !== 'string') {
-            logDebug('Skipping invalid import declaration node');
-            return;
-          }
-
-          hasImports = true;
-
-          let startPos = -1;
-          let endPos = -1;
-          if (path.node.start !== undefined && path.node.start !== null && 
-              path.node.end !== undefined && path.node.end !== null) {
-            startPos = path.node.start;
-            endPos = path.node.end;
-          } 
-          else if (path.node.loc) {
-            startPos = getPositionFromLine(sourceText, path.node.loc.start.line, path.node.loc.start.column);
-            endPos = getPositionFromLine(sourceText, path.node.loc.end.line, path.node.loc.end.column);
-          }
-          if (startPos >= 0 && endPos >= 0 && 
-              startPos < sourceText.length && 
-              endPos <= sourceText.length && 
-              startPos < endPos) {
-            const importText = sourceText.substring(startPos, endPos);
-            if (importText.includes('import') && (importText.includes('from') || importText.includes("'") || importText.includes('"'))) {
-              importPositions.push({ start: startPos, end: endPos });
-              
-              if (firstImportStart === -1 || startPos < firstImportStart) {
-                firstImportStart = startPos;
-              }
-
-              if (lastImportEnd === -1 || endPos > lastImportEnd) {
-                lastImportEnd = endPos;
-              }
-            } else {
-              logDebug('Skipping invalid import position:', { startPos, endPos, importText: importText.substring(0, 50) });
-            }
-          } else {
-            logDebug('Invalid import position detected:', { startPos, endPos, sourceLength: sourceText.length });
-          }
-        },
-      });
-    } catch (traverseError) {
-      const traverseMessage = traverseError instanceof Error ? traverseError.message : String(traverseError);
-      logError('Error during AST traversal:', traverseError);
-      
-      // Handle specific Babel errors
-      if (traverseMessage.includes('buildError') || traverseMessage.includes('Cannot read properties of undefined')) {
-        logError('Babel internal error detected, attempting recovery');
-        return {
-          start: 0,
-          end: 0,
-          error: 'Internal parser error: Please try formatting again',
-        };
-      }
-      
-      return {
-        start: 0,
-        end: 0,
-        error: `AST traversal error: ${traverseMessage}`,
-      };
-    }
-
-    if (!hasImports || firstImportStart === -1 || lastImportEnd === -1 || importPositions.length === 0) {
-      return { start: 0, end: 0 };
-    }
-    const detectedImportSection = sourceText.substring(firstImportStart, lastImportEnd);
-    if (!detectedImportSection.includes('import')) {
-      logDebug('No import keyword found in detected range, returning empty range');
-      return { start: 0, end: 0 };
-    }
-    let adjustedStartPosition = findActualImportStart(sourceText, firstImportStart);
-    adjustedStartPosition = Math.max(0, adjustedStartPosition);
-    if (adjustedStartPosition >= lastImportEnd || adjustedStartPosition >= sourceText.length) {
-      logDebug('Invalid range detected, falling back to original positions');
-      adjustedStartPosition = firstImportStart;
-    }
-
-    logDebug('Successfully detected import range:', {
-      start: adjustedStartPosition,
-      end: lastImportEnd,
-      length: lastImportEnd - adjustedStartPosition,
-      importsCount: importPositions.length
-    });
-
-    return {
-      start: adjustedStartPosition,
-      end: lastImportEnd,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logError('Error in findImportsWithBabel:', error);
-    let specificError = 'Import analysis error: Unable to parse the file.';
-    
-    if (errorMessage.includes('Unexpected token')) {
-      specificError = 'Syntax error: Unexpected token found. Please check for missing semicolons, quotes, or brackets in your imports.';
-    } else if (errorMessage.includes('Invalid left-hand side')) {
-      specificError = 'Syntax error: Invalid import statement structure.';
-    } else if (errorMessage.includes('Unexpected end of input')) {
-      specificError = 'Syntax error: Incomplete import statement found.';
-    } else if (errorMessage.includes('Identifier directly after number')) {
-      specificError = 'Syntax error: Invalid identifier after number. This may indicate corrupted file content or timestamps in the code.';
-    } else if (errorMessage.includes('Cannot parse')) {
-      specificError = `Parse error: ${errorMessage}`;
-    } else if (errorMessage.length > 0 && errorMessage !== 'undefined') {
-      specificError = `Import analysis error: ${errorMessage}`;
-    }
-    
-    return {
-      start: 0,
-      end: 0,
-      error: specificError,
-    };
-  }
-}
-
-
-/**
- * Finds the actual start of imports by including preceding comments
- */
-function findActualImportStart(sourceText: string, firstImportStart: number): number {
-  const lines = sourceText.split('\n');
-  let currentPos = 0;
-  let importLineIndex = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const lineEnd = currentPos + lines[i].length;
-    if (currentPos <= firstImportStart && firstImportStart <= lineEnd) {
-      importLineIndex = i;
-      break;
-    }
-    currentPos = lineEnd + 1; // +1 for the newline character
-  }
-
-  if (importLineIndex === -1) {
-    return firstImportStart;
-  }
-  let startLineIndex = importLineIndex;
-  let inMultilineComment = false;
-  
-  // Check if we're in the middle of a multiline comment at the import line
-  for (let i = 0; i < importLineIndex; i++) {
-    const line = lines[i];
-    if (line.includes('/*') && !line.includes('*/')) {
-      inMultilineComment = true;
-    } else if (line.includes('*/')) {
-      inMultilineComment = false;
-    }
-  }
-  
-  // Walk backwards to include all comments and empty lines
-  for (let i = importLineIndex - 1; i >= 0; i--) {
-    const line = lines[i].trim();
-    
-    if (line.includes('*/')) {
-      inMultilineComment = true;
-      startLineIndex = i;
-    } else if (line.includes('/*')) {
-      inMultilineComment = false;
-      startLineIndex = i;
-    } else if (inMultilineComment) {
-      startLineIndex = i;
-    } else if (line === '' || line.startsWith('//')) {
-      startLineIndex = i;
-    } else {
-      // Stop if we hit non-comment, non-empty content
-      break;
-    }
-  }
-  let adjustedStart = 0;
-  for (let i = 0; i < startLineIndex; i++) {
-    adjustedStart += lines[i].length + 1; // +1 for newline
-  }
-
-  return adjustedStart;
-}
-
-/**
- * Convertit un numéro de ligne et colonne en position dans le texte.
- * @param text Texte source
- * @param line Numéro de ligne (1-indexed)
- * @param column Numéro de colonne (0-indexed, optionnel)
- * @returns Position dans le texte (0-indexed)
- */
-function getPositionFromLine(text: string, line: number, column = 0): number {
-  if (line <= 0) {return 0;}
-
-  const lines = text.split('\n');
-  let position = 0;
-  for (let i = 0; i < line - 1 && i < lines.length; i++) {
-    position += lines[i].length + 1; // +1 for newline character
-  }
-  if (line - 1 < lines.length) {
-    const currentLine = lines[line - 1];
-    const safeColumn = Math.min(column, currentLine.length);
-    position += safeColumn;
-  }
-
-  return Math.max(0, Math.min(position, text.length));
-}
 
 async function formatImports(sourceText: string, config: Config, parserResult?: ParserResult): Promise<{ text: string; error?: string }> {
-  const importRange = await findImportsWithBabel(sourceText);
-
-  if (importRange === null) {
-    return {
-      text: sourceText,
-      error: 'Dynamic imports or non-import code was detected among static imports.',
-    };
-  }
-
-  if (importRange.start === importRange.end) {
-    return { text: sourceText };
-  }
-
   if (!parserResult) {
     logDebug('No parser result provided, unable to format imports');
     return { text: sourceText };
@@ -781,6 +476,11 @@ async function formatImports(sourceText: string, config: Config, parserResult?: 
       text: sourceText,
       error: parserResult.invalidImports[0].error,
     };
+  }
+
+  const importRange = parserResult.importRange;
+  if (!importRange || importRange.start === importRange.end) {
+    return { text: sourceText };
   }
 
   try {
@@ -799,4 +499,4 @@ async function formatImports(sourceText: string, config: Config, parserResult?: 
   }
 }
 
-export { formatImports, findImportsWithBabel };
+export { formatImports };

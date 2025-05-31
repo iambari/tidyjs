@@ -1,4 +1,4 @@
-import { formatImports, findImportsWithBabel } from "./formatter";
+import { formatImports } from "./formatter";
 import { ImportParser, ParserResult, InvalidImport } from "./parser";
 import { Range, window, commands, workspace } from "vscode";
 import type { ExtensionContext } from "vscode";
@@ -148,9 +148,11 @@ async function applyDocumentUpdate(
   document: import("vscode").TextDocument,
   parserResult: ParserResult,
   formatterConfig: ReturnType<typeof configManager.getConfig>,
-  source = "unknown"
+  source = "unknown",
+  targetEditor?: import("vscode").TextEditor
 ): Promise<boolean> {
-  const editor = window.activeTextEditor;
+  // Use the provided targetEditor or fallback to activeTextEditor
+  const editor = targetEditor || window.activeTextEditor;
   if (!editor || editor.document !== document) {
     logDebug(`Document update skipped: editor mismatch (${source})`);
     return false;
@@ -162,11 +164,6 @@ async function applyDocumentUpdate(
   }
 
   const documentText = document.getText();
-
-  if (containsSuspiciousContent(documentText)) {
-    logDebug(`Document update skipped: suspicious content detected (${source})`);
-    return false;
-  }
 
   try {
     const formattedDocument = await formatImports(documentText, formatterConfig, parserResult);
@@ -193,6 +190,10 @@ async function applyDocumentUpdate(
         .then((success) => {
           if (success) {
             logDebug(`Successfully updated document (${source})`);
+            // Restore focus to the target editor to prevent focus loss to Output panel
+            if (targetEditor && window.activeTextEditor !== targetEditor) {
+              window.showTextDocument(targetEditor.document, targetEditor.viewColumn, false);
+            }
           } else {
             showMessage.warning(`Failed to update document (${source})`);
           }
@@ -210,14 +211,6 @@ async function applyDocumentUpdate(
   }
 }
 
-/**
- * Check for suspicious content that might indicate parsing issues
- */
-function containsSuspiciousContent(text: string): boolean {
-  const suspiciousPatterns = [/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, /\d+[a-zA-Z]\s*import/, /import\s*\d+/, /import\s*{[^}]*}\s*{/, /import\s*{\s*default\s*}\s*from/];
-
-  return suspiciousPatterns.some((pattern) => pattern.test(text));
-}
 
 /**
  * Check if the current document is in an excluded folder
@@ -270,6 +263,26 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
   }
 
   const document = editor.document;
+  
+  // Capture the editor reference to prevent losing focus during operation
+  const targetEditor = editor;
+
+  // Safety check: ensure we're working with a real file, not output/log panels
+  if (document.uri.scheme !== 'file' && document.uri.scheme !== 'untitled') {
+    logDebug(`Skipping format - document is not a real file (scheme: ${document.uri.scheme})`);
+    return;
+  }
+
+  // Additional safety check for file extensions that should be formatted
+  const supportedExtensions = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+  const hasValidExtension = supportedExtensions.some(ext => 
+    document.fileName.endsWith(ext) || document.languageId.includes('typescript') || document.languageId.includes('javascript')
+  );
+  
+  if (!hasValidExtension && document.uri.scheme !== 'untitled') {
+    logDebug(`Skipping format - unsupported file type: ${document.fileName} (language: ${document.languageId})`);
+    return;
+  }
 
   if (isDocumentInExcludedFolder(document)) {
     logDebug(`Format operation skipped: document is in excluded folder (${source})`);
@@ -286,48 +299,42 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
 
   const documentText = document.getText();
 
-  if (containsSuspiciousContent(documentText)) {
-    logDebug(`Format operation skipped: suspicious content detected (${source})`);
+  // Check if document contains debug logs (safety check)
+  if (documentText.includes('[DEBUG]') || documentText.includes('Parser result:')) {
+    logError('Document appears to contain debug logs instead of source code - skipping format');
+    if (source === "manual") {
+      showMessage.error('Cannot format: Document appears to contain logs instead of source code');
+    }
     return;
   }
 
   isFormatting = true;
-  logDebug(`Starting ${source} format operation`);
+  logDebug(`Starting ${source} format operation on:`, {
+    fileName: document.fileName,
+    scheme: document.uri.scheme,
+    languageId: document.languageId,
+    isUntitled: document.isUntitled,
+    textLength: documentText.length,
+    textPreview: documentText.substring(0, 100).replace(/\n/g, '\\n')
+  });
 
   try {
-    const importRange = await findImportsWithBabel(documentText);
-
-    if (importRange?.error) {
-      showMessage.error(importRange.error);
-      logError("Error analyzing imports:", importRange.error);
-      return;
-    }
-
-    if (!importRange || importRange.start === importRange.end) {
-      if (source === "manual") {
-        showMessage.info("No imports found in document");
-      }
-      return;
-    }
-
-    const importsText = documentText.substring(importRange.start, importRange.end);
-    logDebug(`Found imports from position ${importRange.start} to ${importRange.end}`);
-    logDebug(`Imports text length: ${importsText.length}`);
-
-    if (containsSuspiciousContent(importsText)) {
-      logError("Suspicious content detected in imports section, aborting format");
-      showMessage.error("Format aborted: Invalid content detected in imports section");
-      return;
-    }
-
     if (!parser) {
       logError('Parser not initialized');
       showMessage.error('TidyJS extension is not properly initialized');
       return;
     }
 
-    let parserResult = parser.parse(importsText) as ParserResult;
+    let parserResult = parser.parse(documentText) as ParserResult;
     logDebug("Parser result:", JSON.stringify(parserResult, null, 2));
+
+    // Check if imports were found
+    if (!parserResult.importRange || parserResult.importRange.start === parserResult.importRange.end) {
+      if (source === "manual") {
+        showMessage.info("No imports found in document");
+      }
+      return;
+    }
 
     if (parserResult.invalidImports && parserResult.invalidImports.length > 0) {
       const errorMessages = parserResult.invalidImports.map((invalidImport) => {
@@ -347,7 +354,7 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
       }
     }
 
-    const success = await applyDocumentUpdate(document, parserResult, configManager.getConfig(), source);
+    const success = await applyDocumentUpdate(document, parserResult, configManager.getConfig(), source, targetEditor);
 
     if (success) {
       if (source === "manual") {

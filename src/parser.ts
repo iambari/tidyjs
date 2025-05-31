@@ -18,7 +18,13 @@ export type ConfigImportGroup = {
     }
 );
 
-export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "sideEffect";
+export enum ImportType {
+  DEFAULT = "default",
+  NAMED = "named",
+  TYPE_DEFAULT = "typeDefault",
+  TYPE_NAMED = "typeNamed",
+  SIDE_EFFECT = "sideEffect"
+}
 export type ImportSource = string;
 export type ImportSpecifier = string;
 
@@ -43,11 +49,11 @@ const DEFAULT_PARSER_SETTINGS: InternalProcessedConfig = {
     multilineIndentation: 2,
   },
   typeOrder: {
-    sideEffect: 0,
-    default: 1,
-    named: 2,
-    typeDefault: 3,
-    typeNamed: 4,
+    [ImportType.SIDE_EFFECT]: 0,
+    [ImportType.DEFAULT]: 1,
+    [ImportType.NAMED]: 2,
+    [ImportType.TYPE_DEFAULT]: 3,
+    [ImportType.TYPE_NAMED]: 4,
   },
   importGroups: [],
 };
@@ -196,24 +202,25 @@ export class ImportParser {
           const importNode = node as TSESTree.ImportDeclaration;
           const source = importNode.source.value as string;
 
-          let type: ImportType = "named";
           const specifiers: string[] = [];
+          let type: ImportType = ImportType.NAMED;
           let defaultImport: string | undefined;
           let hasDefault = false;
           let hasNamed = false;
           let hasNamespace = false;
-          let isTypeOnlyImport = false;
-
-          // Check if this is a type-only import declaration
+          
+          // Extract raw text for specific edge cases like empty named imports
           const raw = this.sourceCode.substring(importNode.range?.[0] || 0, importNode.range?.[1] || 0);
-          isTypeOnlyImport = raw.trim().startsWith('import type');
+          
+          // Check if this is a type-only import declaration using AST
+          const typeOnly = importNode.importKind === 'type';
 
           if (importNode.specifiers.length === 0) {
             // Check if this is an empty named import like import {} from "module"
             if (raw.includes('{}')) {
-              type = isTypeOnlyImport ? "typeNamed" : "named";
+              type = typeOnly ? ImportType.TYPE_NAMED : ImportType.NAMED;
             } else {
-              type = "sideEffect";
+              type = ImportType.SIDE_EFFECT;
             }
           } else {
             for (const specifierNode of importNode.specifiers) {
@@ -236,7 +243,7 @@ export class ImportParser {
               
               // Create default import
               imports.push({
-                type: isTypeOnlyImport ? "typeDefault" : "default",
+                type: typeOnly ? ImportType.TYPE_DEFAULT : ImportType.DEFAULT,
                 source,
                 specifiers: [defaultImport!],
                 defaultImport,
@@ -249,7 +256,7 @@ export class ImportParser {
               // Create named/namespace import
               if (hasNamed) {
                 imports.push({
-                  type: isTypeOnlyImport ? "typeNamed" : "named",
+                  type: typeOnly ? ImportType.TYPE_NAMED : ImportType.NAMED,
                   source,
                   specifiers,
                   defaultImport: undefined,
@@ -262,7 +269,7 @@ export class ImportParser {
               
               if (hasNamespace) {
                 imports.push({
-                  type: isTypeOnlyImport ? "typeDefault" : "default", // namespace imports are treated as default
+                  type: typeOnly ? ImportType.TYPE_DEFAULT : ImportType.DEFAULT, // namespace imports are treated as default
                   source,
                   specifiers,
                   defaultImport: undefined,
@@ -275,14 +282,14 @@ export class ImportParser {
               
               continue; // Skip the normal processing below
             } else if (hasDefault) {
-              type = isTypeOnlyImport ? "typeDefault" : "default";
+              type = typeOnly ? ImportType.TYPE_DEFAULT : ImportType.DEFAULT;
               if (defaultImport) {
                 specifiers.push(defaultImport);
               }
             } else if (hasNamespace) {
-              type = isTypeOnlyImport ? "typeDefault" : "default";
+              type = typeOnly ? ImportType.TYPE_DEFAULT : ImportType.DEFAULT;
             } else if (hasNamed) {
-              type = isTypeOnlyImport ? "typeNamed" : "named";
+              type = typeOnly ? ImportType.TYPE_NAMED : ImportType.NAMED;
             }
           }
 
@@ -353,9 +360,9 @@ export class ImportParser {
     for (const imp of imports) {
       const sourceImports = importsBySource.get(imp.source) || {};
       
-      if (imp.type === 'default' && imp.defaultImport) {
+      if (imp.type === ImportType.DEFAULT && imp.defaultImport) {
         sourceImports.default = imp;
-      } else if (imp.type === 'named') {
+      } else if (imp.type === ImportType.NAMED) {
         if (sourceImports.named) {
           // Merge specifiers for named imports from same source
           const existingSpecifiers = new Set(sourceImports.named.specifiers);
@@ -364,7 +371,7 @@ export class ImportParser {
         } else {
           sourceImports.named = imp;
         }
-      } else if (imp.type === 'typeNamed') {
+      } else if (imp.type === ImportType.TYPE_NAMED) {
         if (sourceImports.typeNamed) {
           // Merge specifiers for type named imports from same source
           const existingSpecifiers = new Set(sourceImports.typeNamed.specifiers);
@@ -373,11 +380,11 @@ export class ImportParser {
         } else {
           sourceImports.typeNamed = imp;
         }
-      } else if (imp.type === 'default' && imp.specifiers.some(s => s.startsWith('* as'))) {
+      } else if (imp.type === ImportType.DEFAULT && imp.specifiers.some(s => s.startsWith('* as'))) {
         sourceImports.namespace = imp;
-      } else if (imp.type === 'sideEffect') {
+      } else if (imp.type === ImportType.SIDE_EFFECT) {
         sourceImports.sideEffect = imp;
-      } else if (imp.type === 'typeDefault') {
+      } else if (imp.type === ImportType.TYPE_DEFAULT) {
         sourceImports.typeDefault = imp;
       }
       

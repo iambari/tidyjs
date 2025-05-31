@@ -10,6 +10,7 @@ import {
 }                   from './utils/misc';
 import { logError }     from './utils/log';
 import type { ParsedImport, ParserResult } from './parser';
+import { ImportType } from './parser';
 
 const fromKeywordRegex = /\bfrom\b/;
 const multilineCommentStartRegex = /\/\*/;
@@ -194,25 +195,25 @@ function cleanUpLines(lines: string[]): string[] {
 function formatImportLine(importItem: ParsedImport): string {
   const { type, source, specifiers, defaultImport } = importItem;
 
-  if (type === 'sideEffect' || specifiers.length === 0) {
+  if (type === ImportType.SIDE_EFFECT || specifiers.length === 0) {
     return `import '${source}';`;
   }
 
-  if (type === 'default' && specifiers.length === 1) {
+  if (type === ImportType.DEFAULT && specifiers.length === 1) {
     return `import ${specifiers[0]} from '${source}';`;
   }
 
-  if (type === 'typeDefault' && specifiers.length === 1) {
+  if (type === ImportType.TYPE_DEFAULT && specifiers.length === 1) {
     return `import type ${specifiers[0]} from '${source}';`;
   }
 
-  if ((type === 'named' || type === 'typeNamed') && specifiers.length === 1) {
-    const typePrefix = type === 'typeNamed' ? 'type ' : '';
+  if ((type === ImportType.NAMED || type === ImportType.TYPE_NAMED) && specifiers.length === 1) {
+    const typePrefix = type === ImportType.TYPE_NAMED ? 'type ' : '';
     return `import ${typePrefix}{ ${specifiers[0]} } from '${source}';`;
   }
 
-  if ((type === 'named' || type === 'typeNamed') && specifiers.length > 1) {
-    const typePrefix = type === 'typeNamed' ? 'type ' : '';
+  if ((type === ImportType.NAMED || type === ImportType.TYPE_NAMED) && specifiers.length > 1) {
+    const typePrefix = type === ImportType.TYPE_NAMED ? 'type ' : '';
     const specifiersSet = new Set(specifiers);
     const sortedSpecifiers = Array.from(specifiersSet).sort((a, b) => a.length - b.length);
 
@@ -220,7 +221,7 @@ function formatImportLine(importItem: ParsedImport): string {
     return parts.join('\n');
   }
 
-  const typePrefix = type === 'typeNamed' ? 'type ' : '';
+  const typePrefix = type === ImportType.TYPE_NAMED ? 'type ' : '';
   const specifiersStr = specifiers.join(', ');
   return `import ${typePrefix}{ ${specifiersStr} } from '${source}';`;
 }
@@ -330,7 +331,7 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
         const sourceImports = importsBySource.get(imp.source) || {};
         
         switch (imp.type) {
-          case 'default':
+          case ImportType.DEFAULT:
             if (imp.defaultImport) {
               sourceImports.default = imp;
             } else if (imp.specifiers.some(s => s.startsWith('* as'))) {
@@ -338,7 +339,7 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
             }
             break;
             
-          case 'named':
+          case ImportType.NAMED:
             if (sourceImports.named) {
               // Merge named specifiers
               const existingSpecifiers = new Set(sourceImports.named.specifiers);
@@ -349,11 +350,11 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
             }
             break;
             
-          case 'typeDefault':
+          case ImportType.TYPE_DEFAULT:
             sourceImports.typeDefault = imp;
             break;
             
-          case 'typeNamed':
+          case ImportType.TYPE_NAMED:
             if (sourceImports.typeNamed) {
               // Merge type-only named specifiers
               const existingSpecifiers = new Set(sourceImports.typeNamed.specifiers);
@@ -419,8 +420,8 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
         importsByType.set(importItem.type, typeArray);
       }
 
-      const resolveTypeKey = (type: string) => {
-        if (type === 'typeNamed' || type === 'typeDefault') {return 'typeOnly';}
+      const resolveTypeKey = (type: ImportType) => {
+        if (type === ImportType.TYPE_NAMED || type === ImportType.TYPE_DEFAULT) {return 'typeOnly';}
         return type;
       };
 
@@ -439,7 +440,7 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
         const sourceCompare = a.source.localeCompare(b.source);
         if (sourceCompare !== 0) {return sourceCompare;}
 
-        if ((a.type === 'named' || a.type === 'typeNamed') && (b.type === 'named' || b.type === 'typeNamed') && a.specifiers.length > 1 && b.specifiers.length > 1) {
+        if ((a.type === ImportType.NAMED || a.type === ImportType.TYPE_NAMED) && (b.type === ImportType.NAMED || b.type === ImportType.TYPE_NAMED) && a.specifiers.length > 1 && b.specifiers.length > 1) {
           return a.specifiers[0].length - b.specifiers[0].length;
         }
 

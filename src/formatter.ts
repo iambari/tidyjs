@@ -319,13 +319,59 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
       }
     });
 
+    // Consolidate imports from the same source before formatting
+    const consolidateImportsBySource = (imports: ParsedImport[]): ParsedImport[] => {
+      const importsBySource = new Map<string, { default?: ParsedImport; named?: ParsedImport; namespace?: ParsedImport }>();
+      
+      // Group imports by source
+      for (const imp of imports) {
+        const sourceImports = importsBySource.get(imp.source) || {};
+        
+        if (imp.type === 'default' && imp.defaultImport) {
+          sourceImports.default = imp;
+        } else if (imp.type === 'named') {
+          if (sourceImports.named) {
+            // Merge specifiers
+            const existingSpecifiers = new Set(sourceImports.named.specifiers);
+            imp.specifiers.forEach(spec => existingSpecifiers.add(spec));
+            sourceImports.named.specifiers = Array.from(existingSpecifiers);
+          } else {
+            sourceImports.named = imp;
+          }
+        } else if (imp.type === 'default' && imp.specifiers.some(s => s.startsWith('* as'))) {
+          sourceImports.namespace = imp;
+        }
+        
+        importsBySource.set(imp.source, sourceImports);
+      }
+      
+      // Convert back to array
+      const consolidated: ParsedImport[] = [];
+      for (const [source, sourceImports] of importsBySource) {
+        if (sourceImports.default) {
+          consolidated.push(sourceImports.default);
+        }
+        if (sourceImports.named) {
+          consolidated.push(sourceImports.named);
+        }
+        if (sourceImports.namespace && !sourceImports.default) {
+          consolidated.push(sourceImports.namespace);
+        }
+      }
+      
+      return consolidated;
+    };
+
     const importGroupEntries = Array.from(Object.entries(importsByGroup));
     importGroupEntries.sort(([, a], [, b]) => a.order - b.order);
 
     const formattedGroups: FormattedImportGroup[] = [];
 
     for (const [groupName, { imports }] of importGroupEntries) {
-      const formattedGroupName = groupName.startsWith('@') ? groupName : extractGroupName(imports[0]?.source || '', groupName);
+      // Consolidate imports from the same source
+      const consolidatedImports = consolidateImportsBySource(imports);
+      
+      const formattedGroupName = groupName.startsWith('@') ? groupName : extractGroupName(consolidatedImports[0]?.source || '', groupName);
       const groupResult: FormattedImportGroup = {
         groupName,
         commentLine: `// ${formattedGroupName}`,
@@ -338,7 +384,7 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
         importsByType.set(type, []);
       });
 
-      for (const importItem of imports) {
+      for (const importItem of consolidatedImports) {
         const typeArray = importsByType.get(importItem.type) || [];
         typeArray.push(importItem);
         importsByType.set(importItem.type, typeArray);
@@ -371,7 +417,7 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
         return 0;
       };
 
-      const orderedImports = [...imports].sort(compareImports);
+      const orderedImports = [...consolidatedImports].sort(compareImports);
 
       groupResult.importLines.push(...orderedImports.map(formatImportLine));
 
@@ -495,6 +541,14 @@ async function findImportsWithBabel(sourceText: string): Promise<{ start: number
     const importPositions: { start: number; end: number }[] = [];
 
     try {
+      // Add error recovery for babel traverse
+      const parseOptions = {
+        errorRecovery: true,
+        allowImportExportEverywhere: true,
+        allowReturnOutsideFunction: true,
+        strictMode: false,
+      };
+      
       babelTraverse(ast, {
         ImportDeclaration(path: NodePath<ImportDeclaration>) {
           if (!path || !path.node || !path.node.source || typeof path.node.source.value !== 'string') {
@@ -541,6 +595,17 @@ async function findImportsWithBabel(sourceText: string): Promise<{ start: number
     } catch (traverseError) {
       const traverseMessage = traverseError instanceof Error ? traverseError.message : String(traverseError);
       logError('Error during AST traversal:', traverseError);
+      
+      // Handle specific Babel errors
+      if (traverseMessage.includes('buildError') || traverseMessage.includes('Cannot read properties of undefined')) {
+        logError('Babel internal error detected, attempting recovery');
+        return {
+          start: 0,
+          end: 0,
+          error: 'Internal parser error: Please try formatting again',
+        };
+      }
+      
       return {
         start: 0,
         end: 0,

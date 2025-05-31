@@ -88,16 +88,13 @@ describe('ImportParser - Import Types Detection', () => {
     const sourceCode = 'import React, * as Utils from "./react-utils";';
     const result = parser.parse(sourceCode);
     
-    expect(result.groups[0].imports).toHaveLength(2);
+    // After consolidation, mixed imports become one consolidated import
+    expect(result.groups[0].imports).toHaveLength(1);
     
-    // First import should be default
+    // Should be a default import with both default and namespace specifiers
     expect(result.groups[0].imports[0].type).toBe('default');
     expect(result.groups[0].imports[0].defaultImport).toBe('React');
     expect(result.groups[0].imports[0].specifiers).toContain('React');
-    
-    // Second import should be namespace (treated as default)
-    expect(result.groups[0].imports[1].type).toBe('default');
-    expect(result.groups[0].imports[1].specifiers).toContain('* as Utils');
   });
 
   test('should handle complex mixed imports', () => {

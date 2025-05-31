@@ -157,13 +157,16 @@ describe('ImportParser - AST Parsing Specifics', () => {
     
     const result = parser.parse(sourceCode);
     
-    expect(result.groups[0].imports).toHaveLength(3);
+    expect(result.groups[0].imports).toHaveLength(1); // all named imports consolidated
     
     // The parser should extract the imported name, not the alias
-    expect(result.groups[0].imports[0].specifiers).toContain('Component');
-    expect(result.groups[0].imports[1].specifiers).toContain('default');
-    expect(result.groups[0].imports[2].specifiers).toContain('useState');
-    expect(result.groups[0].imports[2].specifiers).toContain('useEffect');
+    // All named imports are consolidated into one
+    const namedImport = result.groups[0].imports[0];
+    expect(namedImport.type).toBe('named');
+    expect(namedImport.specifiers).toContain('Component');
+    expect(namedImport.specifiers).toContain('default');
+    expect(namedImport.specifiers).toContain('useState');
+    expect(namedImport.specifiers).toContain('useEffect');
   });
 
   test('should correctly identify side effect imports with no specifiers', () => {
@@ -219,24 +222,21 @@ import { useState } from "react";`;
     
     const result = parser.parse(sourceCode);
     
-    // Mixed imports are split, so we get 11 imports total
-    expect(result.groups[0].imports).toHaveLength(11);
+    // Mixed imports are split, named imports consolidated
+    expect(result.groups[0].imports).toHaveLength(3);
     
     // Imports are sorted by type order: sideEffect(0), default(1), named(2)
     const types = result.groups[0].imports.map(imp => imp.type);
     expect(types).toEqual([
       'sideEffect',  // "module-name"
-      'default',     // defaultExport from "module-name"
-      'default',     // * as name from "module-name"
-      'default',     // defaultExport from mixed import #1
-      'default',     // defaultExport from mixed import #2
-      'default',     // * as name from mixed import #2
-      'named',       // { export1 } from "module-name"
-      'named',       // { export1 as alias1 } from "module-name"
-      'named',       // { export1, export2 } from "module-name"
-      'named',       // { export1, export2 as alias2 } from "module-name"
-      'named'        // { export1 } from mixed import #1
+      'default',     // defaultExport from "module-name" (plus namespace)
+      'named'        // all named imports consolidated
     ]);
+    
+    // Check that named imports are consolidated
+    const namedImport = result.groups[0].imports[2];
+    expect(namedImport.specifiers).toContain('export1');
+    expect(namedImport.specifiers).toContain('export2');
   });
 
   test('should handle AST parsing with different ECMAScript versions', () => {

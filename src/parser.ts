@@ -331,7 +331,81 @@ export class ImportParser {
     return defaultGroup || { groupName: null, isPriority: false };
   }
 
+  private consolidateImportsBySource(imports: ParsedImport[]): ParsedImport[] {
+    const importsBySource = new Map<string, { 
+      default?: ParsedImport; 
+      named?: ParsedImport; 
+      namespace?: ParsedImport;
+      sideEffect?: ParsedImport;
+      typeDefault?: ParsedImport;
+      typeNamed?: ParsedImport;
+    }>();
+    
+    // Group imports by source
+    for (const imp of imports) {
+      const sourceImports = importsBySource.get(imp.source) || {};
+      
+      if (imp.type === 'default' && imp.defaultImport) {
+        sourceImports.default = imp;
+      } else if (imp.type === 'named') {
+        if (sourceImports.named) {
+          // Merge specifiers for named imports from same source
+          const existingSpecifiers = new Set(sourceImports.named.specifiers);
+          imp.specifiers.forEach(spec => existingSpecifiers.add(spec));
+          sourceImports.named.specifiers = Array.from(existingSpecifiers).sort();
+        } else {
+          sourceImports.named = imp;
+        }
+      } else if (imp.type === 'typeNamed') {
+        if (sourceImports.typeNamed) {
+          // Merge specifiers for type named imports from same source
+          const existingSpecifiers = new Set(sourceImports.typeNamed.specifiers);
+          imp.specifiers.forEach(spec => existingSpecifiers.add(spec));
+          sourceImports.typeNamed.specifiers = Array.from(existingSpecifiers).sort();
+        } else {
+          sourceImports.typeNamed = imp;
+        }
+      } else if (imp.type === 'default' && imp.specifiers.some(s => s.startsWith('* as'))) {
+        sourceImports.namespace = imp;
+      } else if (imp.type === 'sideEffect') {
+        sourceImports.sideEffect = imp;
+      } else if (imp.type === 'typeDefault') {
+        sourceImports.typeDefault = imp;
+      }
+      
+      importsBySource.set(imp.source, sourceImports);
+    }
+    
+    // Convert back to array - keep separate import types
+    const consolidated: ParsedImport[] = [];
+    for (const [, sourceImports] of importsBySource) {
+      if (sourceImports.sideEffect) {
+        consolidated.push(sourceImports.sideEffect);
+      }
+      if (sourceImports.default) {
+        consolidated.push(sourceImports.default);
+      }
+      if (sourceImports.named) {
+        consolidated.push(sourceImports.named);
+      }
+      if (sourceImports.namespace && !sourceImports.default) {
+        consolidated.push(sourceImports.namespace);
+      }
+      if (sourceImports.typeDefault) {
+        consolidated.push(sourceImports.typeDefault);
+      }
+      if (sourceImports.typeNamed) {
+        consolidated.push(sourceImports.typeNamed);
+      }
+    }
+    
+    return consolidated;
+  }
+
   private organizeImportsIntoGroups(imports: ParsedImport[]): ImportGroup[] {
+    // First consolidate imports from the same source
+    const consolidatedImports = this.consolidateImportsBySource(imports);
+    
     const groupMap = new Map<string, ImportGroup>();
     let configuredDefaultGroupName: string | null = null;
 
@@ -372,7 +446,7 @@ export class ImportParser {
 
     const defaultGroupForUncategorized = groupMap.get(effectiveDefaultGroupName)!;
 
-    for (const imp of imports) {
+    for (const imp of consolidatedImports) {
       let targetGroup: ImportGroup | undefined;
 
       if (imp.groupName && groupMap.has(imp.groupName)) {

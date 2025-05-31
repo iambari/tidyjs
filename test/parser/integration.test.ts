@@ -106,10 +106,19 @@ describe('ImportParser - Integration Tests', () => {
     // Verify React group
     const reactGroup = result.groups.find(g => g.name === 'React');
     expect(reactGroup).toBeDefined();
-    // Mixed import is split into 2 imports
+    // Mixed import is split into 2 imports: default and named
     expect(reactGroup!.imports).toHaveLength(2);
     expect(reactGroup!.imports[0].source).toBe('react');
     expect(reactGroup!.imports[1].source).toBe('react');
+    // Should have both default and named imports
+    const defaultImport = reactGroup!.imports.find(i => i.type === 'default');
+    const namedImport = reactGroup!.imports.find(i => i.type === 'named');
+    expect(defaultImport).toBeDefined();
+    expect(namedImport).toBeDefined();
+    expect(defaultImport!.specifiers).toContain('React');
+    expect(namedImport!.specifiers).toContain('useState');
+    expect(namedImport!.specifiers).toContain('useEffect');
+    expect(namedImport!.specifiers).toContain('useCallback');
 
     // Verify React Related group
     const reactRelatedGroup = result.groups[1];
@@ -167,7 +176,7 @@ describe('ImportParser - Integration Tests', () => {
     // but we test that it handles them as regular imports
     expect(result.groups).toHaveLength(2); // React and Current Directory groups
     const totalImports = result.groups.reduce((sum, g) => sum + g.imports.length, 0);
-    expect(totalImports).toBe(4);
+    expect(totalImports).toBe(3); // React type+default+named consolidated, types file
   });
 
   test('should handle complex project structure imports', () => {
@@ -204,7 +213,7 @@ describe('ImportParser - Integration Tests', () => {
     const reactGroup = result.groups.find(g => g.name === 'React');
     const reactRelatedGroup = result.groups.find(g => g.name === 'React Related');
 
-    expect(reactGroup!.imports).toHaveLength(3); // split mixed + named (no CSS)
+    expect(reactGroup!.imports).toHaveLength(2); // split mixed + named (but named consolidated)
     expect(reactRelatedGroup!.imports).toHaveLength(1);
     
     // The CSS import goes to Miscellaneous group because it doesn't match any pattern
@@ -217,10 +226,11 @@ describe('ImportParser - Integration Tests', () => {
     const reactImports = reactGroup!.imports;
     // CSS import is missing - it's a different source ("react/index.css") 
     // So reactGroup only has imports from "react" source
-    expect(reactImports).toHaveLength(3); // split mixed + named
+    expect(reactImports).toHaveLength(2); // split mixed + named (but named are consolidated)
     expect(reactImports[0].type).toBe('default');    // React from mixed import
-    expect(reactImports[1].type).toBe('named');      // Component from mixed import
-    expect(reactImports[2].type).toBe('named');      // { Fragment }
+    expect(reactImports[1].type).toBe('named');      // { Component, Fragment } consolidated
+    expect(reactImports[1].specifiers).toContain('Component');
+    expect(reactImports[1].specifiers).toContain('Fragment');
   });
 
   test('should handle empty groups gracefully in real-world scenario', () => {

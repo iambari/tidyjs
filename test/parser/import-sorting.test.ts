@@ -101,10 +101,10 @@ describe('ImportParser - Import Sorting Within Groups', () => {
     expect(imports[0].source).toBe('react');
     expect(imports[1].type).toBe('default'); // Vue
     expect(imports[1].source).toBe('vue');
-    expect(imports[2].type).toBe('named');   // { Component } (from mixed)
+    expect(imports[2].type).toBe('named');   // { Component, useState } (consolidated named from react)
     expect(imports[2].source).toBe('react');
-    expect(imports[3].type).toBe('named');   // { useState }
-    expect(imports[3].source).toBe('react');
+    expect(imports[2].specifiers).toContain('Component');
+    expect(imports[2].specifiers).toContain('useState');
   });
 
   test('should sort within custom type order configuration', () => {

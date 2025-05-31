@@ -190,6 +190,7 @@ describe('ImportParser - Error Recovery and Invalid Imports', () => {
     const result = parser.parse(escapeCode);
     
     expect(result.groups).toHaveLength(1);
-    expect(result.groups[0].imports[0].source).toBe('path\\\\with\\\\backslashes');
+    // The parser correctly interprets escape sequences
+    expect(result.groups[0].imports[0].source).toBe('path\\with\\backslashes');
   });
 });

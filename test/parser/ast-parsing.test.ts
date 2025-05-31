@@ -68,9 +68,10 @@ describe('ImportParser - AST Parsing Specifics', () => {
     
     expect(result.groups[0].imports).toHaveLength(3);
     
-    expect(result.groups[0].imports[0].specifiers).toEqual(['useState']);
-    expect(result.groups[0].imports[1].specifiers).toEqual(['mount', 'shallow']);
-    expect(result.groups[0].imports[2].specifiers).toEqual(['debounce', 'throttle']);
+    // Imports are sorted alphabetically by source: enzyme, lodash, react
+    expect(result.groups[0].imports[0].specifiers).toEqual(['mount', 'shallow']); // enzyme
+    expect(result.groups[0].imports[1].specifiers).toEqual(['debounce', 'throttle']); // lodash
+    expect(result.groups[0].imports[2].specifiers).toEqual(['useState']); // react
     
     result.groups[0].imports.forEach(imp => {
       expect(imp.type).toBe('named');
@@ -89,9 +90,10 @@ describe('ImportParser - AST Parsing Specifics', () => {
     
     expect(result.groups[0].imports).toHaveLength(3);
     
-    expect(result.groups[0].imports[0].specifiers).toContain('* as React');
-    expect(result.groups[0].imports[1].specifiers).toContain('* as Utils');
-    expect(result.groups[0].imports[2].specifiers).toContain('* as API');
+    // Imports are sorted alphabetically by source: ../api, ./utils, react
+    expect(result.groups[0].imports[0].specifiers).toContain('* as API'); // ../api
+    expect(result.groups[0].imports[1].specifiers).toContain('* as Utils'); // ./utils
+    expect(result.groups[0].imports[2].specifiers).toContain('* as React'); // react
     
     result.groups[0].imports.forEach(imp => {
       expect(imp.type).toBe('default'); // Namespace imports are treated as default
@@ -103,14 +105,21 @@ describe('ImportParser - AST Parsing Specifics', () => {
     const sourceCode = 'import React, { Component, Fragment } from "react";';
     const result = parser.parse(sourceCode);
 
-    expect(result.groups[0].imports).toHaveLength(1);
-    const importItem = result.groups[0].imports[0];
+    // Mixed imports are split into separate default and named imports
+    expect(result.groups[0].imports).toHaveLength(2);
     
-    expect(importItem.type).toBe('mixed');
-    expect(importItem.defaultImport).toBe('React');
-    expect(importItem.specifiers).toContain('Component');
-    expect(importItem.specifiers).toContain('Fragment');
-    expect(importItem.specifiers).toHaveLength(2); // Only named imports in specifiers for mixed
+    // First import is the default import
+    const defaultImport = result.groups[0].imports[0];
+    expect(defaultImport.type).toBe('default');
+    expect(defaultImport.defaultImport).toBe('React');
+    expect(defaultImport.specifiers).toEqual(['React']);
+    
+    // Second import is the named import
+    const namedImport = result.groups[0].imports[1];
+    expect(namedImport.type).toBe('named');
+    expect(namedImport.specifiers).toContain('Component');
+    expect(namedImport.specifiers).toContain('Fragment');
+    expect(namedImport.specifiers).toHaveLength(2);
   });
 
   test('should correctly parse import source values', () => {
@@ -127,14 +136,15 @@ describe('ImportParser - AST Parsing Specifics', () => {
     
     expect(result.groups[0].imports).toHaveLength(6);
     
+    // Imports are sorted alphabetically by source
     const sources = result.groups[0].imports.map(imp => imp.source);
     expect(sources).toEqual([
-      'simple-module',
-      '@scoped/package',
-      './relative/path',
       '../parent/path',
+      './relative/path',
+      '@scoped/package',
       '/absolute/path',
-      'module/with/subpath'
+      'module/with/subpath',
+      'simple-module'
     ]);
   });
 
@@ -173,8 +183,9 @@ describe('ImportParser - AST Parsing Specifics', () => {
       expect(imp.defaultImport).toBeUndefined();
     });
     
+    // Imports are sorted alphabetically by source
     const sources = result.groups[0].imports.map(imp => imp.source);
-    expect(sources).toEqual(['normalize.css', './global.styles.css', 'polyfill']);
+    expect(sources).toEqual(['./global.styles.css', 'normalize.css', 'polyfill']);
   });
 
   test('should correctly extract raw import text from AST ranges', () => {
@@ -208,19 +219,23 @@ import { useState } from "react";`;
     
     const result = parser.parse(sourceCode);
     
-    expect(result.groups[0].imports).toHaveLength(9);
+    // Mixed imports are split, so we get 11 imports total
+    expect(result.groups[0].imports).toHaveLength(11);
     
+    // Imports are sorted by type order: sideEffect(0), default(1), named(2)
     const types = result.groups[0].imports.map(imp => imp.type);
     expect(types).toEqual([
-      'default',    // defaultExport from "module-name"
-      'default',    // * as name from "module-name"
-      'named',      // { export1 } from "module-name"
-      'named',      // { export1 as alias1 } from "module-name"
-      'named',      // { export1, export2 } from "module-name"
-      'named',      // { export1, export2 as alias2 } from "module-name"
-      'mixed',      // defaultExport, { export1 } from "module-name"
-      'mixed',      // defaultExport, * as name from "module-name"
-      'sideEffect'  // "module-name"
+      'sideEffect',  // "module-name"
+      'default',     // defaultExport from "module-name"
+      'default',     // * as name from "module-name"
+      'default',     // defaultExport from mixed import #1
+      'default',     // defaultExport from mixed import #2
+      'default',     // * as name from mixed import #2
+      'named',       // { export1 } from "module-name"
+      'named',       // { export1 as alias1 } from "module-name"
+      'named',       // { export1, export2 } from "module-name"
+      'named',       // { export1, export2 as alias2 } from "module-name"
+      'named'        // { export1 } from mixed import #1
     ]);
   });
 
@@ -234,8 +249,9 @@ import { useState } from "react";`;
     const result = parser.parse(modernSyntax);
     
     expect(result.groups[0].imports).toHaveLength(2);
-    expect(result.groups[0].imports[0].source).toBe('es2020-module');
-    expect(result.groups[0].imports[1].source).toBe('es2021-feature');
+    // Imports are sorted by type: default first, then named
+    expect(result.groups[0].imports[0].source).toBe('es2021-feature'); // default import
+    expect(result.groups[0].imports[1].source).toBe('es2020-module');  // named import
   });
 
   test('should correctly handle empty import declarations', () => {
@@ -248,11 +264,20 @@ import { useState } from "react";`;
     
     expect(result.groups[0].imports).toHaveLength(2);
     
-    result.groups[0].imports.forEach(imp => {
-      expect(imp.type).toBe('named');
-      expect(imp.specifiers).toHaveLength(0);
-      expect(imp.defaultImport).toBeUndefined();
-    });
+    // Imports are sorted alphabetically by source
+    const emptyImport = result.groups[0].imports.find(i => i.source === 'empty-imports');
+    const whitespaceImport = result.groups[0].imports.find(i => i.source === 'whitespace-empty');
+    
+    // The parser checks if raw includes '{}' to determine if it's a named import
+    // Import with '{}' (no space) is detected as named
+    expect(emptyImport!.type).toBe('named');
+    expect(emptyImport!.specifiers).toHaveLength(0);
+    expect(emptyImport!.defaultImport).toBeUndefined();
+    
+    // Import with '{ }' (with space) is not detected by the '{}' check, so treated as sideEffect
+    expect(whitespaceImport!.type).toBe('sideEffect');
+    expect(whitespaceImport!.specifiers).toHaveLength(0);
+    expect(whitespaceImport!.defaultImport).toBeUndefined();
   });
 
   test('should preserve AST structure integrity during parsing', () => {

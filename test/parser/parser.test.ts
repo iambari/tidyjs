@@ -94,12 +94,18 @@ describe('ImportParser', () => {
       const result = parser.parse(sourceCode);
 
       expect(result.groups).toHaveLength(1);
-      const importItem = result.groups[0].imports[0];
+      // Mixed imports are split into separate default and named imports
+      expect(result.groups[0].imports).toHaveLength(2);
       
-      expect(importItem.type).toBe('mixed');
-      expect(importItem.source).toBe('react');
-      expect(importItem.defaultImport).toBe('React');
-      expect(importItem.specifiers).toContain('useState');
+      const defaultImport = result.groups[0].imports[0];
+      expect(defaultImport.type).toBe('default');
+      expect(defaultImport.source).toBe('react');
+      expect(defaultImport.defaultImport).toBe('React');
+      
+      const namedImport = result.groups[0].imports[1];
+      expect(namedImport.type).toBe('named');
+      expect(namedImport.source).toBe('react');
+      expect(namedImport.specifiers).toContain('useState');
     });
 
     test('should parse side effect imports correctly', () => {

@@ -395,8 +395,8 @@ export class ImportParser {
           if (typeOrderA !== typeOrderB) {
             return typeOrderA - typeOrderB;
           }
-          // Use source order as tie-breaker instead of alphabetical
-          return a.sourceIndex - b.sourceIndex;
+          // Sort alphabetically by source within same type
+          return a.source.localeCompare(b.source);
         });
       }
     }
@@ -407,3 +407,8 @@ export class ImportParser {
   }
 }
 
+// Helper function for backwards compatibility
+export function parseImports(sourceCode: string, config: ExtensionGlobalConfig): ParserResult {
+  const parser = new ImportParser(config);
+  return parser.parse(sourceCode);
+}

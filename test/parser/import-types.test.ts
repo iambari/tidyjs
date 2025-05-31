@@ -88,20 +88,33 @@ describe('ImportParser - Import Types Detection', () => {
     const sourceCode = 'import React, * as Utils from "./react-utils";';
     const result = parser.parse(sourceCode);
     
-    expect(result.groups[0].imports[0].type).toBe('mixed');
+    expect(result.groups[0].imports).toHaveLength(2);
+    
+    // First import should be default
+    expect(result.groups[0].imports[0].type).toBe('default');
     expect(result.groups[0].imports[0].defaultImport).toBe('React');
-    expect(result.groups[0].imports[0].specifiers).toContain('* as Utils');
+    expect(result.groups[0].imports[0].specifiers).toContain('React');
+    
+    // Second import should be namespace (treated as default)
+    expect(result.groups[0].imports[1].type).toBe('default');
+    expect(result.groups[0].imports[1].specifiers).toContain('* as Utils');
   });
 
   test('should handle complex mixed imports', () => {
     const sourceCode = 'import React, { Component, Fragment, PureComponent } from "react";';
     const result = parser.parse(sourceCode);
     
-    expect(result.groups[0].imports[0].type).toBe('mixed');
+    expect(result.groups[0].imports).toHaveLength(2);
+    
+    // First import should be default
+    expect(result.groups[0].imports[0].type).toBe('default');
     expect(result.groups[0].imports[0].defaultImport).toBe('React');
-    expect(result.groups[0].imports[0].specifiers).toContain('Component');
-    expect(result.groups[0].imports[0].specifiers).toContain('Fragment');
-    expect(result.groups[0].imports[0].specifiers).toContain('PureComponent');
+    
+    // Second import should be named
+    expect(result.groups[0].imports[1].type).toBe('named');
+    expect(result.groups[0].imports[1].specifiers).toContain('Component');
+    expect(result.groups[0].imports[1].specifiers).toContain('Fragment');
+    expect(result.groups[0].imports[1].specifiers).toContain('PureComponent');
   });
 
   test('should handle imports with aliases', () => {

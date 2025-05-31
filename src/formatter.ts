@@ -622,14 +622,34 @@ function findActualImportStart(sourceText: string, firstImportStart: number): nu
     return firstImportStart;
   }
   let startLineIndex = importLineIndex;
+  let inMultilineComment = false;
+  
+  // Check if we're in the middle of a multiline comment at the import line
+  for (let i = 0; i < importLineIndex; i++) {
+    const line = lines[i];
+    if (line.includes('/*') && !line.includes('*/')) {
+      inMultilineComment = true;
+    } else if (line.includes('*/')) {
+      inMultilineComment = false;
+    }
+  }
+  
+  // Walk backwards to include all comments and empty lines
   for (let i = importLineIndex - 1; i >= 0; i--) {
     const line = lines[i].trim();
-    if (line === '' || 
-        line.startsWith('//') || 
-        line.includes('/*') || 
-        line.includes('*/')) {
+    
+    if (line.includes('*/')) {
+      inMultilineComment = true;
+      startLineIndex = i;
+    } else if (line.includes('/*')) {
+      inMultilineComment = false;
+      startLineIndex = i;
+    } else if (inMultilineComment) {
+      startLineIndex = i;
+    } else if (line === '' || line.startsWith('//')) {
       startLineIndex = i;
     } else {
+      // Stop if we hit non-comment, non-empty content
       break;
     }
   }

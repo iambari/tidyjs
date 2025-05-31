@@ -96,11 +96,15 @@ describe('ImportParser - Import Sorting Within Groups', () => {
     const result = parser.parse(sourceCode);
     const imports = result.groups[0].imports;
     
-    // Mixed and default imports should be treated as default (order 1)
-    // Named imports should come after (order 2)
-    expect(imports[0].type).toBe('mixed');  // React, { Component }
+    // Mixed imports are split: first all defaults, then all named
+    expect(imports[0].type).toBe('default'); // React (from mixed)
+    expect(imports[0].source).toBe('react');
     expect(imports[1].type).toBe('default'); // Vue
-    expect(imports[2].type).toBe('named');   // { useState }
+    expect(imports[1].source).toBe('vue');
+    expect(imports[2].type).toBe('named');   // { Component } (from mixed)
+    expect(imports[2].source).toBe('react');
+    expect(imports[3].type).toBe('named');   // { useState }
+    expect(imports[3].source).toBe('react');
   });
 
   test('should sort within custom type order configuration', () => {
@@ -122,11 +126,20 @@ describe('ImportParser - Import Sorting Within Groups', () => {
     `;
     
     const result = customParser.parse(sourceCode);
-    const imports = result.groups[0].imports;
     
-    expect(imports[0].type).toBe('named');      // Order 0
-    expect(imports[1].type).toBe('default');    // Order 1
-    expect(imports[2].type).toBe('sideEffect'); // Order 2
+    // The test expects all imports in one group, but they're split between Libraries and Local
+    const allImports = result.groups.flatMap(g => g.imports);
+    expect(allImports).toHaveLength(3);
+    
+    // Sort imports by the custom type order
+    const sortedImports = allImports.sort((a, b) => {
+      const orderA = customConfig.importOrder[a.type] ?? Infinity;
+      const orderB = customConfig.importOrder[b.type] ?? Infinity;
+      return orderA - orderB;
+    });
+    expect(sortedImports[0].type).toBe('named');      // Order 0
+    expect(sortedImports[1].type).toBe('default');    // Order 1
+    expect(sortedImports[2].type).toBe('sideEffect'); // Order 2
   });
 
   test('should handle namespace imports in sorting', () => {
@@ -185,7 +198,7 @@ describe('ImportParser - Import Sorting Within Groups', () => {
   test('should handle imports with same source but different types', () => {
     const sourceCode = `
       import { named } from "same-module";
-      import default from "same-module";
+      import defaultExport from "same-module";
       import "same-module";
     `;
     

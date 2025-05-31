@@ -40,8 +40,9 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
     
     expect(result.groups).toHaveLength(1);
     expect(result.groups[0].imports).toHaveLength(2);
-    expect(result.groups[0].imports[0].source).toBe('react');
-    expect(result.groups[0].imports[1].source).toBe('./utils');
+    // Imports are sorted alphabetically by source
+    expect(result.groups[0].imports[0].source).toBe('./utils');
+    expect(result.groups[0].imports[1].source).toBe('react');
   });
 
   test('should handle multiline import statements', () => {
@@ -118,10 +119,11 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
     
     expect(result.groups).toHaveLength(1);
     expect(result.groups[0].imports).toHaveLength(4);
+    // Imports are sorted alphabetically by source
     expect(result.groups[0].imports[0].source).toBe('@scope/package-name');
     expect(result.groups[0].imports[1].source).toBe('package_with_underscores');
-    expect(result.groups[0].imports[2].source).toBe('package.with.dots');
-    expect(result.groups[0].imports[3].source).toBe('package-with-dashes');
+    expect(result.groups[0].imports[2].source).toBe('package-with-dashes');
+    expect(result.groups[0].imports[3].source).toBe('package.with.dots');
   });
 
   test('should handle imports with numeric module names', () => {
@@ -135,9 +137,10 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
     
     expect(result.groups).toHaveLength(1);
     expect(result.groups[0].imports).toHaveLength(3);
-    expect(result.groups[0].imports[0].source).toBe('package123');
-    expect(result.groups[0].imports[1].source).toBe('123package');
-    expect(result.groups[0].imports[2].source).toBe('pack4ge');
+    // Imports are sorted alphabetically by source
+    expect(result.groups[0].imports[0].source).toBe('123package');
+    expect(result.groups[0].imports[1].source).toBe('pack4ge');
+    expect(result.groups[0].imports[2].source).toBe('package123');
   });
 
   test('should handle imports with file extensions', () => {
@@ -152,9 +155,10 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
     
     expect(result.groups).toHaveLength(1);
     expect(result.groups[0].imports).toHaveLength(4);
+    // Imports are sorted alphabetically by source
     expect(result.groups[0].imports[0].source).toBe('./component.jsx');
-    expect(result.groups[0].imports[1].source).toBe('./styles.css');
-    expect(result.groups[0].imports[2].source).toBe('./data.json');
+    expect(result.groups[0].imports[1].source).toBe('./data.json');
+    expect(result.groups[0].imports[2].source).toBe('./styles.css');
     expect(result.groups[0].imports[3].source).toBe('./worker.js');
   });
 
@@ -168,8 +172,9 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
     
     expect(result.groups).toHaveLength(1);
     expect(result.groups[0].imports).toHaveLength(2);
-    expect(result.groups[0].imports[0].source).toBe('./worker?worker');
-    expect(result.groups[0].imports[1].source).toBe('./styles.css?inline');
+    // Imports are sorted alphabetically by source
+    expect(result.groups[0].imports[0].source).toBe('./styles.css?inline');
+    expect(result.groups[0].imports[1].source).toBe('./worker?worker');
   });
 
   test('should handle mixed quote styles', () => {
@@ -182,8 +187,9 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
     
     expect(result.groups).toHaveLength(1);
     expect(result.groups[0].imports).toHaveLength(2);
-    expect(result.groups[0].imports[0].source).toBe('single-quotes');
-    expect(result.groups[0].imports[1].source).toBe('double-quotes');
+    // Imports are sorted alphabetically by source
+    expect(result.groups[0].imports[0].source).toBe('double-quotes');
+    expect(result.groups[0].imports[1].source).toBe('single-quotes');
   });
 
   test('should handle imports with whitespace variations', () => {
@@ -197,9 +203,10 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
     
     expect(result.groups).toHaveLength(1);
     expect(result.groups[0].imports).toHaveLength(3);
-    expect(result.groups[0].imports[0].source).toBe('react');
+    // Imports are sorted alphabetically by source
+    expect(result.groups[0].imports[0].source).toBe('./utils');
     expect(result.groups[0].imports[1].source).toBe('react');
-    expect(result.groups[0].imports[2].source).toBe('./utils');
+    expect(result.groups[0].imports[2].source).toBe('react');
   });
 
   test('should handle empty import lists', () => {
@@ -226,11 +233,18 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
     const result = parser.parse(sourceCode);
     
     expect(result.groups).toHaveLength(1);
-    expect(result.groups[0].imports[0].type).toBe('mixed');
+    // Mixed imports are split into separate default and named imports
+    expect(result.groups[0].imports).toHaveLength(2);
+    
+    // First import is the default import
+    expect(result.groups[0].imports[0].type).toBe('default');
     expect(result.groups[0].imports[0].defaultImport).toBe('DefaultExport');
-    expect(result.groups[0].imports[0].specifiers).toContain('namedExport1');
-    expect(result.groups[0].imports[0].specifiers).toContain('namedExport2');
-    expect(result.groups[0].imports[0].specifiers).toContain('namedExport3');
+    
+    // Second import is the named import
+    expect(result.groups[0].imports[1].type).toBe('named');
+    expect(result.groups[0].imports[1].specifiers).toContain('namedExport1');
+    expect(result.groups[0].imports[1].specifiers).toContain('namedExport2');
+    expect(result.groups[0].imports[1].specifiers).toContain('namedExport3');
   });
 
   test('should handle imports at different code positions', () => {

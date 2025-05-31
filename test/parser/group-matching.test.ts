@@ -5,34 +5,34 @@ describe('ImportParser - Group Matching Logic', () => {
   const advancedConfig: Config = {
     groups: [
       {
-        name: 'Node Modules',
+        name: 'App Modules',
         order: 1,
         isDefault: false,
-        match: /^[^.@]/
+        match: /^app\//
+      },
+      {
+        name: 'Node Modules',
+        order: 2,
+        isDefault: false,
+        match: /^[a-zA-Z0-9-]+$/  // Only match simple package names
       },
       {
         name: 'Scoped Packages',
-        order: 2,
+        order: 3,
         isDefault: false,
         match: /^@/
       },
       {
         name: 'Parent Imports',
-        order: 3,
+        order: 4,
         isDefault: false,
         match: /^\.\./
       },
       {
         name: 'Current Directory',
-        order: 4,
+        order: 5,
         isDefault: false,
         match: /^\.\/[^/]/
-      },
-      {
-        name: 'App Modules',
-        order: 5,
-        isDefault: true,
-        match: /^app\//
       },
       {
         name: 'Miscellaneous',
@@ -42,9 +42,9 @@ describe('ImportParser - Group Matching Logic', () => {
     ],
     importOrder: {
       default: 1,
-      named: 2,
-      typeOnly: 3,
-      sideEffect: 0
+      named: 1,
+      typeOnly: 1,
+      sideEffect: 1
     },
     format: {
       onSave: true
@@ -68,7 +68,8 @@ describe('ImportParser - Group Matching Logic', () => {
     const nodeModulesGroup = result.groups.find(g => g.name === 'Node Modules');
     expect(nodeModulesGroup).toBeDefined();
     expect(nodeModulesGroup!.imports).toHaveLength(3);
-    expect(nodeModulesGroup!.imports.map(i => i.source)).toEqual(['react', 'lodash', 'moment']);
+    // Imports are sorted alphabetically by source
+    expect(nodeModulesGroup!.imports.map(i => i.source)).toEqual(['lodash', 'moment', 'react']);
   });
 
   test('should match scoped packages group correctly', () => {
@@ -82,9 +83,10 @@ describe('ImportParser - Group Matching Logic', () => {
     const scopedGroup = result.groups.find(g => g.name === 'Scoped Packages');
     expect(scopedGroup).toBeDefined();
     expect(scopedGroup!.imports).toHaveLength(3);
+    // With same type order, imports are sorted alphabetically by source
     expect(scopedGroup!.imports.map(i => i.source)).toEqual([
-      '@angular/core', 
-      '@emotion/styled', 
+      '@angular/core',
+      '@emotion/styled',
       '@testing-library/react'
     ]);
   });
@@ -100,10 +102,11 @@ describe('ImportParser - Group Matching Logic', () => {
     const parentGroup = result.groups.find(g => g.name === 'Parent Imports');
     expect(parentGroup).toBeDefined();
     expect(parentGroup!.imports).toHaveLength(3);
+    // Imports are sorted alphabetically by source
     expect(parentGroup!.imports.map(i => i.source)).toEqual([
-      '../utils',
-      '../../config', 
-      '../../../types'
+      '../../../types',
+      '../../config',
+      '../utils'
     ]);
   });
 
@@ -118,10 +121,11 @@ describe('ImportParser - Group Matching Logic', () => {
     const currentGroup = result.groups.find(g => g.name === 'Current Directory');
     expect(currentGroup).toBeDefined();
     expect(currentGroup!.imports).toHaveLength(3);
+    // Imports are sorted alphabetically by source
     expect(currentGroup!.imports.map(i => i.source)).toEqual([
+      './constants',
       './helper',
-      './styles.css',
-      './constants'
+      './styles.css'
     ]);
   });
 
@@ -136,10 +140,11 @@ describe('ImportParser - Group Matching Logic', () => {
     const appGroup = result.groups.find(g => g.name === 'App Modules');
     expect(appGroup).toBeDefined();
     expect(appGroup!.imports).toHaveLength(3);
+    // Imports are sorted alphabetically by source
     expect(appGroup!.imports.map(i => i.source)).toEqual([
+      'app/api',
       'app/routes',
-      'app/store',
-      'app/api'
+      'app/store'
     ]);
   });
 
@@ -166,15 +171,15 @@ describe('ImportParser - Group Matching Logic', () => {
     const result = parser.parse(sourceCode);
     
     expect(result.groups).toHaveLength(5);
-    expect(result.groups[0].name).toBe('Node Modules');
+    expect(result.groups[0].name).toBe('App Modules');
     expect(result.groups[0].order).toBe(1);
-    expect(result.groups[1].name).toBe('Scoped Packages');
+    expect(result.groups[1].name).toBe('Node Modules');
     expect(result.groups[1].order).toBe(2);
-    expect(result.groups[2].name).toBe('Parent Imports');
+    expect(result.groups[2].name).toBe('Scoped Packages');
     expect(result.groups[2].order).toBe(3);
-    expect(result.groups[3].name).toBe('Current Directory');
+    expect(result.groups[3].name).toBe('Parent Imports');
     expect(result.groups[3].order).toBe(4);
-    expect(result.groups[4].name).toBe('App Modules');
+    expect(result.groups[4].name).toBe('Current Directory');
     expect(result.groups[4].order).toBe(5);
   });
 

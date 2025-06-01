@@ -350,6 +350,7 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
         namespace?: ParsedImport;
         typeDefault?: ParsedImport;
         typeNamed?: ParsedImport;
+        sideEffect?: ParsedImport;
       }>();
       
       // Group imports by source and type
@@ -390,6 +391,10 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
               sourceImports.typeNamed = imp;
             }
             break;
+            
+          case ImportType.SIDE_EFFECT:
+            sourceImports.sideEffect = imp;
+            break;
         }
         
         importsBySource.set(imp.source, sourceImports);
@@ -398,6 +403,9 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
       // Convert back to array, preserving the order: sideEffect → default → named → typeDefault → typeNamed
       const consolidated: ParsedImport[] = [];
       for (const [source, sourceImports] of importsBySource) {
+        if (sourceImports.sideEffect) {
+          consolidated.push(sourceImports.sideEffect);
+        }
         if (sourceImports.default) {
           consolidated.push(sourceImports.default);
         }
@@ -520,6 +528,9 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
     // If there's content after imports, add a newline separator
     if (suffix.length > 0) {
       suffix = '\n' + suffix;
+    } else {
+      // If the file ends with imports, ensure there's still an empty line at the end
+      suffix = '\n';
     }
 
     return sourceText.substring(0, importRange.start) + formattedText + suffix;

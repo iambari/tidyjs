@@ -25,10 +25,6 @@ export interface Config {
     bracketSpacing?: boolean;
   };
 
-  patterns?: {
-    appModules?: RegExp;
-  };
-
   excludedFolders?: string[];
 }
 

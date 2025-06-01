@@ -32,9 +32,6 @@ const DEFAULT_CONFIG: Config = {
     singleQuote: true,
     bracketSpacing: true,
   },
-  patterns: {
-    appModules: /^@app\/([a-zA-Z0-9_-]+)/,
-  },
   excludedFolders: [],
 };
 
@@ -82,12 +79,6 @@ class ConfigManager {
       })),
       format: { ...config.format },
       importOrder: { ...config.importOrder },
-      patterns: config.patterns ? {
-        ...config.patterns,
-        appModules: config.patterns.appModules 
-          ? new RegExp(config.patterns.appModules.source, config.patterns.appModules.flags) 
-          : undefined,
-      } : undefined,
       excludedFolders: config.excludedFolders ? [...config.excludedFolders] : undefined,
     };
   }
@@ -344,19 +335,6 @@ class ConfigManager {
       if (importOrder && JSON.stringify(newConfig.importOrder) !== JSON.stringify(importOrder)) {
         newConfig.importOrder = { ...importOrder };
         hasChanges = true;
-      }
-      const patternsSettings = vsConfig.get<{ appModules?: string }>('patterns');
-      if (patternsSettings?.appModules !== undefined) {
-        if (!newConfig.patterns) {newConfig.patterns = {};}
-        const newPattern = this.parseRegexString(patternsSettings.appModules);
-        if (newPattern && (
-          !newConfig.patterns.appModules ||
-          newConfig.patterns.appModules.source !== newPattern.source ||
-          newConfig.patterns.appModules.flags !== newPattern.flags
-        )) {
-          newConfig.patterns.appModules = newPattern;
-          hasChanges = true;
-        }
       }
       const debug = vsConfig.get<boolean>('debug');
       if (debug !== undefined && newConfig.debug !== debug) {

@@ -166,11 +166,6 @@
           "default": false,
           "description": "Remove imports for modules that are not installed"
         },
-        "tidyjs.patterns.appModules": {
-          "type": "string",
-          "default": "^@app\\/([a-zA-Z0-9_-]+)",
-          "description": "Regex pattern to match application modules"
-        },
         "tidyjs.excludedFolders": {
           "type": "array",
           "default": [],

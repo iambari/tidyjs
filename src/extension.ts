@@ -211,7 +211,6 @@ async function applyDocumentUpdate(
   }
 }
 
-
 /**
  * Check if the current document is in an excluded folder
  */
@@ -398,6 +397,7 @@ const debouncedFormatOnSaveCommand = debounce(() => {
     formatImportsCommand("auto-save");
   }
 }, 800);
+
 /**
  * Gère la mise à jour de la configuration
  */

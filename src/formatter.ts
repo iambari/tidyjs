@@ -8,6 +8,7 @@ import {
     isEmptyLine,
     showMessage
 }                   from './utils/misc';
+import { uniqBy, takeRightWhile, dropRightWhile, maxBy, padEnd } from 'lodash';
 import { logError }     from './utils/log';
 import type { ParsedImport, ParserResult } from './parser';
 import { ImportType } from './parser';
@@ -59,14 +60,14 @@ function alignMultilineFromKeyword(line: string, fromIndex: number, maxFromIndex
     // No closing brace found - apply basic alignment from start of line
     const beforeFrom = lastLine.substring(0, fromMatch.index);
     const fromAndAfter = lastLine.substring(fromMatch.index);
-    const exactSpaces = Math.max(1, maxFromIndex - beforeFrom.length);
-    newLastLine = beforeFrom + ' '.repeat(exactSpaces) + fromAndAfter;
+    const targetLength = Math.max(beforeFrom.length + 1, maxFromIndex);
+    newLastLine = padEnd(beforeFrom, targetLength) + fromAndAfter;
   } else {
     // Normal case with closing brace
     const beforeContent = lastLine.substring(0, closeBraceIndex + 1);
-    const exactSpaces = Math.max(1, maxFromIndex - (closeBraceIndex + 1)); // Ensure at least 1 space
     const fromAndAfter = lastLine.substring(fromMatch.index);
-    newLastLine = beforeContent + ' '.repeat(exactSpaces) + fromAndAfter;
+    const targetLength = Math.max(beforeContent.length + 1, maxFromIndex);
+    newLastLine = padEnd(beforeContent, targetLength) + fromAndAfter;
   }
   lines[lastLineIndex] = newLastLine;
 
@@ -84,11 +85,7 @@ function alignImportsInGroup(importLines: string[]): string[] {
     idealFromPosition: number;
   }
 
-  const lineInfos: LineInfo[] = new Array(importLines.length);
-  let globalMaxFromPosition = 0;
-
-  for (let i = 0; i < importLines.length; i++) {
-    const line = importLines[i];
+  const lineInfos: LineInfo[] = importLines.map(line => {
     const info: LineInfo = {
       fromIndex: -1,
       isMultiline: false,
@@ -98,16 +95,15 @@ function alignImportsInGroup(importLines: string[]): string[] {
     if (line.includes('\n')) {
       info.isMultiline = true;
       const lines = line.split('\n');
-      const { maxLength, maxIndex } = lines.slice(1, -1).reduce(
-        (acc, curr, idx) => {
-          const len = curr.trim().replace(/,$/, '').trim().length;
-          if (len > acc.maxLength) {
-            return { maxLength: len, maxIndex: idx };
-          }
-          return acc;
-        },
-        { maxLength: 0, maxIndex: -1 }
+      const middleLines = lines.slice(1, -1);
+      
+      // Use maxBy to find the longest line instead of manual reduce
+      const longestLine = maxBy(middleLines, (curr) => 
+        curr.trim().replace(/,$/, '').trim().length
       );
+      
+      const maxLength = longestLine ? longestLine.trim().replace(/,$/, '').trim().length : 0;
+      const maxIndex = longestLine ? middleLines.indexOf(longestLine) : -1;
 
       info.idealFromPosition = 4 + maxLength + (maxIndex !== lines.length - 3 && maxIndex !== -1 ? 2 : 1);
       const lastLine = lines[lines.length - 1];
@@ -121,9 +117,12 @@ function alignImportsInGroup(importLines: string[]): string[] {
       }
     }
 
-    globalMaxFromPosition = Math.max(globalMaxFromPosition, info.idealFromPosition);
-    lineInfos[i] = info;
-  }
+    return info;
+  });
+
+  // Use maxBy to find the maximum ideal position instead of manual Math.max
+  const maxPositionInfo = maxBy(lineInfos, info => info.idealFromPosition);
+  const globalMaxFromPosition = maxPositionInfo?.idealFromPosition || 0;
 
   return importLines.map((line, i) => {
     const info = lineInfos[i];
@@ -134,23 +133,10 @@ function alignImportsInGroup(importLines: string[]): string[] {
 }
 
 function cleanUpLines(lines: string[]): string[] {
-  const result: string[] = [];
-  const seenGroupComments = new Set<string>();
+  const processedLines: string[] = [];
   let consecutiveEmptyLines = 0;
   let inMultilineComment = false;
   
-  const handleGroupComment = (line: string, normalizedLine: string): boolean => {
-    if (normalizedLine.startsWith('// ')) {
-      const groupName = normalizedLine.substring(3).trim();
-      if (!seenGroupComments.has(groupName)) {
-        seenGroupComments.add(groupName);
-        result.push(line);
-      }
-      return true;
-    }
-    return false;
-  };
-
   const isInlineMultilineComment = (normalizedLine: string): boolean => {
     return multilineCommentStartRegex.test(normalizedLine) && multilineCommentEndRegex.test(normalizedLine);
   };
@@ -159,14 +145,14 @@ function cleanUpLines(lines: string[]): string[] {
     const normalizedLine = line.trim();
 
     if (normalizedLine.startsWith('//')) {
-      handleGroupComment(line, normalizedLine);
+      processedLines.push(line);
       continue;
     }
 
     if (multilineCommentStartRegex.test(normalizedLine)) {
       if (isInlineMultilineComment(normalizedLine)) {
         // Don't skip the line, there might be code after the comment
-        result.push(line);
+        processedLines.push(line);
         consecutiveEmptyLines = 0;
         continue;
       }
@@ -182,24 +168,33 @@ function cleanUpLines(lines: string[]): string[] {
 
     if (isEmptyLine(line)) {
       if (consecutiveEmptyLines < 1) {
-        result.push(line);
+        processedLines.push(line);
         consecutiveEmptyLines++;
       }
     } else {
-      result.push(line);
+      processedLines.push(line);
       consecutiveEmptyLines = 0;
     }
   }
 
-  while (result.length > 0 && isEmptyLine(result[result.length - 1])) {
-    result.pop();
+  // Remove duplicate group comments using uniqBy
+  const uniqueGroupComments = uniqBy(
+    processedLines.filter(line => line.trim().startsWith('// ')),
+    line => line.trim().substring(3).trim()
+  );
+  
+  const nonGroupCommentLines = processedLines.filter(line => !line.trim().startsWith('// '));
+  const linesWithUniqueComments = [...uniqueGroupComments, ...nonGroupCommentLines];
+
+  // Remove trailing empty lines using dropRightWhile
+  const withoutTrailingEmpty = dropRightWhile(linesWithUniqueComments, isEmptyLine);
+
+  // Ensure exactly one empty line at the end
+  if (withoutTrailingEmpty.length === 0 || !isEmptyLine(withoutTrailingEmpty[withoutTrailingEmpty.length - 1])) {
+    withoutTrailingEmpty.push('');
   }
 
-  if (result.length === 0 || !isEmptyLine(result[result.length - 1])) {
-    result.push('');
-  }
-
-  return result;
+  return withoutTrailingEmpty;
 }
 
 function formatImportLine(importItem: ParsedImport): string {
@@ -326,12 +321,6 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
       }>;
 
     const importsByGroup: GroupedImports = {};
-    const importOrder = config.importOrder || {
-      default: 0,
-      named: 1,
-      typeOnly: 2,
-      sideEffect: 3,
-    };
 
     parserResult.groups.forEach((group) => {
       if (group.imports?.length) {
@@ -359,48 +348,8 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
         importLines: [],
       };
 
-      const importsByType = new Map<string, ParsedImport[]>();
-
-      Object.keys(importOrder).forEach((type) => {
-        importsByType.set(type, []);
-      });
-
-      for (const importItem of consolidatedImports) {
-        const typeArray = importsByType.get(importItem.type) || [];
-        typeArray.push(importItem);
-        importsByType.set(importItem.type, typeArray);
-      }
-
-      const resolveTypeKey = (type: ImportType) => {
-        if (type === ImportType.TYPE_NAMED || type === ImportType.TYPE_DEFAULT) {return 'typeOnly';}
-        return type;
-      };
-
-      const compareImports = (a: ParsedImport, b: ParsedImport): number => {
-        const typeA = resolveTypeKey(a.type);
-        const typeB = resolveTypeKey(b.type);
-
-        const typeCompare = (importOrder[typeA as keyof typeof importOrder] ?? 0) - (importOrder[typeB as keyof typeof importOrder] ?? 0);
-        if (typeCompare !== 0) {return typeCompare;}
-
-        const isReactA = a.source.toLowerCase() === 'react';
-        const isReactB = b.source.toLowerCase() === 'react';
-        if (isReactA && !isReactB) {return -1;}
-        if (!isReactA && isReactB) {return 1;}
-
-        const sourceCompare = a.source.localeCompare(b.source);
-        if (sourceCompare !== 0) {return sourceCompare;}
-
-        if ((a.type === ImportType.NAMED || a.type === ImportType.TYPE_NAMED) && (b.type === ImportType.NAMED || b.type === ImportType.TYPE_NAMED) && a.specifiers.length > 1 && b.specifiers.length > 1) {
-          const aFirstSpec = typeof a.specifiers[0] === 'string' ? a.specifiers[0] : a.specifiers[0].local;
-          const bFirstSpec = typeof b.specifiers[0] === 'string' ? b.specifiers[0] : b.specifiers[0].local;
-          return aFirstSpec.length - bFirstSpec.length;
-        }
-
-        return 0;
-      };
-
-      const orderedImports = [...consolidatedImports].sort(compareImports);
+      // Imports are already sorted by the parser
+      const orderedImports = consolidatedImports;
 
       groupResult.importLines.push(...orderedImports.map(formatImportLine));
 
@@ -457,9 +406,6 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
     throw error;
   }
 }
-
-
-
 
 async function formatImports(sourceText: string, config: Config, parserResult?: ParserResult): Promise<{ text: string; error?: string }> {
   if (!parserResult) {

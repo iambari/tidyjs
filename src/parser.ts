@@ -638,7 +638,6 @@ export class ImportParser {
   }
 }
 
-// Helper function for backwards compatibility
 export function parseImports(sourceCode: string, config: ExtensionGlobalConfig): ParserResult {
   const parser = new ImportParser(config);
   return parser.parse(sourceCode);

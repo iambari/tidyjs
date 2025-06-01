@@ -1,6 +1,7 @@
 import { Config } from '../types';
 import vscode from 'vscode';
 import { logDebug, logError } from './log';
+import { cloneDeepWith, difference, uniq } from 'lodash';
 
 export interface ConfigChangeEvent {
   configKey: string;
@@ -71,16 +72,12 @@ class ConfigManager {
    * @returns A deep copy of the configuration with properly cloned RegExp objects
    */
   private deepCloneConfig(config: Config): Config {
-    return {
-      ...config,
-      groups: config.groups.map(g => ({
-        ...g,
-        match: g.match ? new RegExp(g.match.source, g.match.flags) : undefined,
-      })),
-      format: { ...config.format },
-      importOrder: { ...config.importOrder },
-      excludedFolders: config.excludedFolders ? [...config.excludedFolders] : undefined,
-    };
+    return cloneDeepWith(config, (value) => {
+      if (value instanceof RegExp) {
+        return new RegExp(value.source, value.flags);
+      }
+      return undefined;
+    });
   }
 
   /**
@@ -103,15 +100,17 @@ class ConfigManager {
       errors.push(`Multiple groups are marked as default: ${groupNames}. Only one group can be the default.`);
     }
     const orders = config.groups.map(g => g.order);
-    const duplicateOrders = orders.filter((order, index) => orders.indexOf(order) !== index);
+    const uniqueOrders = uniq(orders);
+    const duplicateOrders = difference(orders, uniqueOrders);
     if (duplicateOrders.length > 0) {
-      const uniqueDuplicates = [...new Set(duplicateOrders)];
+      const uniqueDuplicates = uniq(duplicateOrders);
       errors.push(`Duplicate group orders found: ${uniqueDuplicates.join(', ')}. Each group should have a unique order.`);
     }
     const names = config.groups.map(g => g.name);
-    const duplicateNames = names.filter((name, index) => names.indexOf(name) !== index);
+    const uniqueNames = uniq(names);
+    const duplicateNames = difference(names, uniqueNames);
     if (duplicateNames.length > 0) {
-      const uniqueDuplicateNames = [...new Set(duplicateNames)];
+      const uniqueDuplicateNames = uniq(duplicateNames);
       errors.push(`Duplicate group names found: ${uniqueDuplicateNames.join(', ')}. Each group must have a unique name.`);
     }
 

@@ -177,17 +177,8 @@ function cleanUpLines(lines: string[]): string[] {
     }
   }
 
-  // Remove duplicate group comments using uniqBy
-  const uniqueGroupComments = uniqBy(
-    processedLines.filter(line => line.trim().startsWith('// ')),
-    line => line.trim().substring(3).trim()
-  );
-  
-  const nonGroupCommentLines = processedLines.filter(line => !line.trim().startsWith('// '));
-  const linesWithUniqueComments = [...uniqueGroupComments, ...nonGroupCommentLines];
-
   // Remove trailing empty lines using dropRightWhile
-  const withoutTrailingEmpty = dropRightWhile(linesWithUniqueComments, isEmptyLine);
+  const withoutTrailingEmpty = dropRightWhile(processedLines, isEmptyLine);
 
   // Ensure exactly one empty line at the end
   if (withoutTrailingEmpty.length === 0 || !isEmptyLine(withoutTrailingEmpty[withoutTrailingEmpty.length - 1])) {
@@ -247,14 +238,6 @@ function formatImportLine(importItem: ParsedImport): string {
   return `import ${typePrefix}{ ${specifiersStr} } from '${source}';`;
 }
 
-function extractGroupName(source: string, groupName: string): string {
-  if (groupName === 'Misc' || groupName === 'DS' || groupName === 'Utils') {
-    return groupName;
-  }
-
-  const match = source.match(/@[a-zA-Z]+(?:\/[a-zA-Z]+)?/);
-  return match ? match[0] : groupName;
-}
 
 function formatImportsFromParser(sourceText: string, importRange: { start: number; end: number }, parserResult: ParserResult, config: Config): string {
   if (importRange.start === importRange.end || !parserResult.groups.length) {
@@ -341,7 +324,7 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
       // Imports are already consolidated by the parser
       const consolidatedImports = imports;
       
-      const formattedGroupName = groupName.startsWith('@') ? groupName : extractGroupName(consolidatedImports[0]?.source || '', groupName);
+      const formattedGroupName = groupName;
       const groupResult: FormattedImportGroup = {
         groupName,
         commentLine: `// ${formattedGroupName}`,

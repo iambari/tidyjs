@@ -342,89 +342,6 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
       }
     });
 
-    // Enhanced consolidation with better type/value separation
-    const consolidateImportsBySource = (imports: ParsedImport[]): ParsedImport[] => {
-      const importsBySource = new Map<string, { 
-        default?: ParsedImport; 
-        named?: ParsedImport; 
-        namespace?: ParsedImport;
-        typeDefault?: ParsedImport;
-        typeNamed?: ParsedImport;
-        sideEffect?: ParsedImport;
-      }>();
-      
-      // Group imports by source and type
-      for (const imp of imports) {
-        const sourceImports = importsBySource.get(imp.source) || {};
-        
-        switch (imp.type) {
-          case ImportType.DEFAULT:
-            if (imp.defaultImport) {
-              sourceImports.default = imp;
-            } else if (imp.specifiers.some(s => typeof s === 'string' && s.startsWith('* as'))) {
-              sourceImports.namespace = imp;
-            }
-            break;
-            
-          case ImportType.NAMED:
-            if (sourceImports.named) {
-              // Merge named specifiers
-              const existingSpecifiers = new Set(sourceImports.named.specifiers);
-              imp.specifiers.forEach(spec => existingSpecifiers.add(spec));
-              sourceImports.named.specifiers = Array.from(existingSpecifiers).sort();
-            } else {
-              sourceImports.named = imp;
-            }
-            break;
-            
-          case ImportType.TYPE_DEFAULT:
-            sourceImports.typeDefault = imp;
-            break;
-            
-          case ImportType.TYPE_NAMED:
-            if (sourceImports.typeNamed) {
-              // Merge type-only named specifiers
-              const existingSpecifiers = new Set(sourceImports.typeNamed.specifiers);
-              imp.specifiers.forEach(spec => existingSpecifiers.add(spec));
-              sourceImports.typeNamed.specifiers = Array.from(existingSpecifiers).sort();
-            } else {
-              sourceImports.typeNamed = imp;
-            }
-            break;
-            
-          case ImportType.SIDE_EFFECT:
-            sourceImports.sideEffect = imp;
-            break;
-        }
-        
-        importsBySource.set(imp.source, sourceImports);
-      }
-      
-      // Convert back to array, preserving the order: sideEffect → default → named → typeDefault → typeNamed
-      const consolidated: ParsedImport[] = [];
-      for (const [source, sourceImports] of importsBySource) {
-        if (sourceImports.sideEffect) {
-          consolidated.push(sourceImports.sideEffect);
-        }
-        if (sourceImports.default) {
-          consolidated.push(sourceImports.default);
-        }
-        if (sourceImports.named) {
-          consolidated.push(sourceImports.named);
-        }
-        if (sourceImports.namespace && !sourceImports.default) {
-          consolidated.push(sourceImports.namespace);
-        }
-        if (sourceImports.typeDefault) {
-          consolidated.push(sourceImports.typeDefault);
-        }
-        if (sourceImports.typeNamed) {
-          consolidated.push(sourceImports.typeNamed);
-        }
-      }
-      
-      return consolidated;
-    };
 
     const importGroupEntries = Array.from(Object.entries(importsByGroup));
     importGroupEntries.sort(([, a], [, b]) => a.order - b.order);
@@ -432,8 +349,8 @@ function formatImportsFromParser(sourceText: string, importRange: { start: numbe
     const formattedGroups: FormattedImportGroup[] = [];
 
     for (const [groupName, { imports }] of importGroupEntries) {
-      // Consolidate imports from the same source
-      const consolidatedImports = consolidateImportsBySource(imports);
+      // Imports are already consolidated by the parser
+      const consolidatedImports = imports;
       
       const formattedGroupName = groupName.startsWith('@') ? groupName : extractGroupName(consolidatedImports[0]?.source || '', groupName);
       const groupResult: FormattedImportGroup = {

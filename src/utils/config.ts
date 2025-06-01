@@ -27,7 +27,8 @@ const DEFAULT_CONFIG: Config = {
   format: {
     onSave: false,
     indent: 4,
-    removeUnused: false,
+    removeUnusedImports: false,
+    removeMissingModules: false,
     singleQuote: true,
     bracketSpacing: true,
   },
@@ -327,7 +328,8 @@ class ConfigManager {
       const formatSettings = {
         onSave: vsConfig.get<boolean>('format.onSave'),
         indent: vsConfig.get<number>('format.indent'),
-        removeUnused: vsConfig.get<boolean>('format.removeUnused'),
+        removeUnusedImports: vsConfig.get<boolean>('format.removeUnusedImports'),
+        removeMissingModules: vsConfig.get<boolean>('format.removeMissingModules'),
         singleQuote: vsConfig.get<boolean>('format.singleQuote'),
         bracketSpacing: vsConfig.get<boolean>('format.bracketSpacing'),
       };

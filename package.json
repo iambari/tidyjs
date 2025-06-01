@@ -156,20 +156,15 @@
           "default": 4,
           "description": "Number of spaces for indentation"
         },
-        "tidyjs.format.removeUnused": {
+        "tidyjs.format.removeUnusedImports": {
           "type": "boolean",
           "default": false,
           "description": "Remove unused imports during formatting"
         },
-        "tidyjs.format.singleQuote": {
+        "tidyjs.format.removeMissingModules": {
           "type": "boolean",
-          "default": true,
-          "description": "Use single quotes for import paths"
-        },
-        "tidyjs.format.bracketSpacing": {
-          "type": "boolean",
-          "default": true,
-          "description": "Add spaces inside import braces"
+          "default": false,
+          "description": "Remove imports for modules that are not installed"
         },
         "tidyjs.patterns.appModules": {
           "type": "string",

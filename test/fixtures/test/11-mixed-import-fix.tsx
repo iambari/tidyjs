@@ -11,7 +11,7 @@ import React, {
   lazy,
   Suspense
 } from 'react';
-
+import { WsDataModel }  from '@library/form-new/models/ProviderModel';
 
 export default function TestComponent() {
   const [state, setState] = useState(null);

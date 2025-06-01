@@ -19,7 +19,8 @@ export interface Config {
   format: {
     onSave: boolean;
     indent?: number;
-    removeUnused?: boolean;
+    removeUnusedImports?: boolean;
+    removeMissingModules?: boolean;
     singleQuote?: boolean;
     bracketSpacing?: boolean;
   };

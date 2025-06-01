@@ -346,11 +346,23 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
       return;
     }
 
-    if (configManager.getConfig().format.removeUnused) {
-      const unusedImports = getUnusedImports(document.uri, parserResult);
-      logDebug("Unused imports:", unusedImports);
-      if (unusedImports.length > 0) {
-        parserResult = removeUnusedImports(parserResult, unusedImports);
+    if (configManager.getConfig().format.removeUnusedImports) {
+      try {
+        const config = configManager.getConfig();
+        const includeMissingModules = config.format.removeMissingModules ?? false;
+        const unusedImports = getUnusedImports(document.uri, parserResult, includeMissingModules);
+        
+        logDebug("Unused imports:", unusedImports);
+        if (includeMissingModules) {
+          logDebug("Including missing module imports in removal");
+        }
+        
+        if (unusedImports.length > 0) {
+          parserResult = removeUnusedImports(parserResult, unusedImports);
+        }
+      } catch (error) {
+        logError("Error removing unused imports:", error instanceof Error ? error.message : String(error));
+        // Continue with formatting even if unused import removal fails
       }
     }
 

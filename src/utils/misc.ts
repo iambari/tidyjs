@@ -53,20 +53,21 @@ export const showMessage = {
  * Récupère les imports de modules inexistants ET non utilisés à partir des diagnostics
  * @param uri URI du document actuel
  * @param parserResult Résultat du parser d'imports
+ * @param diagnostics Diagnostics pré-récupérés (optionnel)
  * @returns Un objet avec les modules manquants et les variables non utilisées associées
  */
-export function getMissingAndUnusedImports(uri: Uri, parserResult: ParserResult): { missingModules: Set<string>, unusedFromMissing: Set<string> } {
+export function getMissingAndUnusedImports(uri: Uri, parserResult: ParserResult, diagnostics?: ReturnType<typeof diagnosticsCache.getDiagnostics>): { missingModules: Set<string>, unusedFromMissing: Set<string> } {
   try {
     // Quick safety check - if these VS Code APIs are not available, return empty sets
     if (!languages || typeof languages.getDiagnostics !== 'function') {
       return { missingModules: new Set(), unusedFromMissing: new Set() };
     }
     
-    const diagnostics = diagnosticsCache.getDiagnostics(uri);
+    const cachedDiagnostics = diagnostics || diagnosticsCache.getDiagnostics(uri);
     const missingModules = new Set<string>();
     const unusedVariables = new Set<string>();
 
-    if (!diagnostics || diagnostics.length === 0) {
+    if (!cachedDiagnostics || cachedDiagnostics.length === 0) {
       return { missingModules: new Set(), unusedFromMissing: new Set() };
     }
 
@@ -76,7 +77,7 @@ export function getMissingAndUnusedImports(uri: Uri, parserResult: ParserResult)
     }
 
     // First pass: collect missing modules
-    for (const diagnostic of diagnostics) {
+    for (const diagnostic of cachedDiagnostics) {
       if (diagnostic.severity === DiagnosticSeverity.Error && 
           MODULE_NOT_FOUND_CODES.includes(String(diagnostic.code))) {
         const message = diagnostic.message;
@@ -89,7 +90,7 @@ export function getMissingAndUnusedImports(uri: Uri, parserResult: ParserResult)
     }
 
     // Second pass: collect unused variables
-    for (const diagnostic of diagnostics) {
+    for (const diagnostic of cachedDiagnostics) {
       if ((diagnostic.severity === DiagnosticSeverity.Warning || 
            diagnostic.severity === DiagnosticSeverity.Hint) &&
           UNUSED_IMPORT_CODES.includes(String(diagnostic.code))) {
@@ -147,19 +148,20 @@ export function getMissingAndUnusedImports(uri: Uri, parserResult: ParserResult)
  * @param uri URI du document actuel
  * @param parserResult Résultat du parser d'imports
  * @param includeMissingModules Si true, inclut aussi les imports de modules inexistants
+ * @param diagnostics Diagnostics pré-récupérés (optionnel)
  * @returns Un tableau des noms d'imports non utilisés
  */
-export function getUnusedImports(uri: Uri, parserResult: ParserResult, includeMissingModules = false): string[] {
+export function getUnusedImports(uri: Uri, parserResult: ParserResult, includeMissingModules = false, diagnostics?: ReturnType<typeof diagnosticsCache.getDiagnostics>): string[] {
   try {
     // Quick safety check - if these VS Code APIs are not available, return empty array
     if (!languages || typeof languages.getDiagnostics !== 'function') {
       return [];
     }
     
-    const diagnostics = diagnosticsCache.getDiagnostics(uri);
+    const cachedDiagnostics = diagnostics || diagnosticsCache.getDiagnostics(uri);
     const unusedImports: string[] = [];
 
-    if (!diagnostics) {
+    if (!cachedDiagnostics) {
       return [];
     }
 
@@ -177,7 +179,7 @@ export function getUnusedImports(uri: Uri, parserResult: ParserResult, includeMi
     const document = editor.document;
 
     // Get unused import specifiers
-    const unusedDiagnostics = diagnostics.filter(diagnostic => {
+    const unusedDiagnostics = cachedDiagnostics.filter(diagnostic => {
       return (
         (diagnostic.severity === DiagnosticSeverity.Warning ||
          diagnostic.severity === DiagnosticSeverity.Hint) &&
@@ -201,7 +203,7 @@ export function getUnusedImports(uri: Uri, parserResult: ParserResult, includeMi
     // Optionally include imports from missing modules that are also unused
     if (includeMissingModules) {
       try {
-        const { missingModules, unusedFromMissing } = getMissingAndUnusedImports(uri, parserResult);
+        const { missingModules, unusedFromMissing } = getMissingAndUnusedImports(uri, parserResult, cachedDiagnostics);
         
         logDebug('Missing modules detected:', Array.from(missingModules));
         logDebug('Unused imports from missing modules:', Array.from(unusedFromMissing));

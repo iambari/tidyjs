@@ -358,9 +358,16 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
         const config = perfMonitor.measureSync('config_getConfig', () => configManager.getConfig());
         const includeMissingModules = config.format.removeMissingModules ?? false;
         
+        // Récupérer les diagnostics une seule fois et les réutiliser
+        const diagnostics = perfMonitor.measureSync(
+          'get_diagnostics',
+          () => diagnosticsCache.getDiagnostics(document.uri),
+          { uri: document.uri.toString() }
+        );
+        
         const unusedImports = perfMonitor.measureSync(
           'get_unused_imports',
-          () => getUnusedImports(document.uri, parserResult, includeMissingModules),
+          () => getUnusedImports(document.uri, parserResult, includeMissingModules, diagnostics),
           { includeMissingModules }
         );
         

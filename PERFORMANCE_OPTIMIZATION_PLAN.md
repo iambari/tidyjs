@@ -6,24 +6,19 @@ L'analyse des performances a révélé plusieurs goulots d'étranglement majeurs
 
 ## 🔍 Problèmes Identifiés
 
-### 1. **Appels multiples à `getDiagnostics`** (Impact: ÉLEVÉ)
-- **Problème**: L'API `getDiagnostics` est appelée 2-3 fois par formatage
-- **Cause**: `getUnusedImports` et `getMissingAndUnusedImports` appellent chacun l'API
-- **Impact**: 30-50ms par appel sur des gros fichiers
-
-### 2. **Parsing AST répété** (Impact: MOYEN)
+### **Parsing AST répété** (Impact: MOYEN)
 - **Problème**: Le document est parsé plusieurs fois (TypeScript ESLint + Babel)
 - **Impact**: 20-40ms de surcharge
 
-### 3. **Regex dans des boucles O(n*m)** (Impact: MOYEN)
+### **Regex dans des boucles O(n*m)** (Impact: MOYEN)
 - **Problème**: Chaque import teste toutes les regex de groupes
 - **Impact**: Complexité quadratique sur gros fichiers
 
-### 4. **Configuration rechargée à chaque appel** (Impact: FAIBLE)
+### **Configuration rechargée à chaque appel** (Impact: FAIBLE)
 - **Problème**: La config VS Code est lue et validée à chaque `getConfig()`
 - **Impact**: 5-10ms par appel
 
-### 5. **Allocations mémoire excessives** (Impact: FAIBLE)
+### **Allocations mémoire excessives** (Impact: FAIBLE)
 - **Problème**: Multiples copies d'objets et arrays temporaires
 - **Impact**: Pression GC sur gros fichiers
 

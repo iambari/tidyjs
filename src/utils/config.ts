@@ -2,6 +2,7 @@ import { Config } from '../types';
 import vscode from 'vscode';
 import { logDebug, logError } from './log';
 import { cloneDeepWith, difference, uniq } from 'lodash';
+import { ConfigCache } from './config-cache';
 
 const DEFAULT_CONFIG: Config = {
   debug: false,
@@ -31,6 +32,7 @@ const DEFAULT_CONFIG: Config = {
 
 class ConfigManager {
   private subfolders = new Map<string, Config['groups'][0]>();
+  private configCache = new ConfigCache();
 
 
   /**
@@ -101,7 +103,11 @@ class ConfigManager {
    * ```
    */
   public getConfig(): Config {
-    return this.loadConfiguration();
+    const { config } = this.configCache.getConfig(
+      () => this.loadConfiguration(),
+      (c) => this.validateConfiguration(c)
+    );
+    return config;
   }
 
   /**
@@ -117,8 +123,11 @@ class ConfigManager {
    * ```
    */
   public validateCurrentConfiguration(): { isValid: boolean; errors: string[] } {
-    const config = this.getConfig();
-    return this.validateConfiguration(config);
+    const { validation } = this.configCache.getConfig(
+      () => this.loadConfiguration(),
+      (c) => this.validateConfiguration(c)
+    );
+    return validation;
   }
 
   /**

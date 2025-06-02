@@ -2,6 +2,7 @@ import { parse } from "@typescript-eslint/parser";
 import { TSESTree } from "@typescript-eslint/types";
 
 import { Config as ExtensionGlobalConfig } from "./types";
+import { GroupMatcher } from "./utils/group-matcher";
 
 export type ConfigImportGroup = {
   name: string;
@@ -92,8 +93,12 @@ export class ImportParser {
   private ast!: TSESTree.Program;
   private sourceCode = "";
   private invalidImports: InvalidImport[] = [];
+  private groupMatcher: GroupMatcher;
 
   constructor(extensionConfig: ExtensionGlobalConfig) {
+    // Initialize GroupMatcher with the groups configuration
+    this.groupMatcher = new GroupMatcher(extensionConfig.groups);
+    
     const importGroups: ConfigImportGroup[] = extensionConfig.groups.map((g): ConfigImportGroup => {
       if (g.isDefault) {
         return {
@@ -322,32 +327,14 @@ export class ImportParser {
   }
 
   private determineGroup(source: string): { groupName: string | null; isPriority: boolean } {
-    for (const group of this.internalConfig.importGroups) {
-      const isPriority = !!group.priority;
-
-      if (group.isDefault !== true && group.match && group.match.test(source)) {
-        return {
-          groupName: group.name,
-          isPriority: isPriority,
-        };
-      }
-    }
-
-    let defaultGroup: { groupName: string; isPriority: boolean } | null = null;
-    for (const group of this.internalConfig.importGroups) {
-      if (group.isDefault === true) {
-        defaultGroup = {
-          groupName: group.name,
-          isPriority: !!group.priority,
-        };
-
-        if (group.match && group.match.test(source)) {
-          return defaultGroup;
-        }
-      }
-    }
-
-    return defaultGroup || { groupName: null, isPriority: false };
+    // Use cached GroupMatcher for O(1) lookups after first match
+    const groupName = this.groupMatcher.getGroup(source);
+    
+    // Find the group to get its priority setting
+    const group = this.internalConfig.importGroups.find(g => g.name === groupName);
+    const isPriority = group ? !!group.priority : false;
+    
+    return { groupName, isPriority };
   }
 
   private consolidateImportsBySource(imports: ParsedImport[]): ParsedImport[] {

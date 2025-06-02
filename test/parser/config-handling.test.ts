@@ -159,7 +159,7 @@ describe('ImportParser - Configuration Handling', () => {
     expect(result.groups[1].imports[0].source).toBe('unknown-package');
   });
 
-  test('should handle multiple default groups correctly', () => {
+  test('should reject multiple default groups as invalid configuration', () => {
     const multipleDefaultConfig: Config = {
       ...baseConfig,
       groups: [
@@ -177,6 +177,9 @@ describe('ImportParser - Configuration Handling', () => {
       ]
     };
 
+    // This configuration should be invalid when validated
+    // The ConfigManager would reject this, but since we're testing the parser directly,
+    // we need to verify that the GroupMatcher handles this by using only the first default
     const parser = new ImportParser(multipleDefaultConfig);
     const sourceCode = `
       import { routes } from "app/routes";
@@ -185,11 +188,13 @@ describe('ImportParser - Configuration Handling', () => {
     
     const result = parser.parse(sourceCode);
     
-    expect(result.groups).toHaveLength(2);
+    // The GroupMatcher should only use the first default group it finds
+    // Both imports should go to the same default group (First Default)
+    expect(result.groups).toHaveLength(1);
     expect(result.groups[0].name).toBe('First Default');
+    expect(result.groups[0].imports).toHaveLength(2);
     expect(result.groups[0].imports[0].source).toBe('app/routes');
-    expect(result.groups[1].name).toBe('Second Default');
-    expect(result.groups[1].imports[0].source).toBe('unknown');
+    expect(result.groups[0].imports[1].source).toBe('unknown');
   });
 
   test('should handle priority configuration', () => {

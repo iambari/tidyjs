@@ -10,16 +10,13 @@ export class GroupMatcher {
     private defaultGroup: string;
 
     constructor(groups: Config['groups']) {
-        // Pre-compile all patterns and store them
+        // Pre-compile all patterns and store them in order
+        // Sort by the 'order' field to respect user-defined priority
         this.compiledPatterns = groups
+            .slice() // Create a copy to avoid mutating the original
+            .sort((a, b) => a.order - b.order) // Sort by order field
             .filter(g => g.match)
-            .map(g => ({ name: g.name, pattern: g.match! }))
-            .sort((a, b) => {
-                // Put more specific patterns first (those with more literals)
-                const aLiterals = a.pattern.source.replace(/[.*+?^${}()|[\]\\]/g, '').length;
-                const bLiterals = b.pattern.source.replace(/[.*+?^${}()|[\]\\]/g, '').length;
-                return bLiterals - aLiterals;
-            });
+            .map(g => ({ name: g.name, pattern: g.match! }));
 
         const defaultGroupObj = groups.find(g => g.isDefault);
         this.defaultGroup = defaultGroupObj ? defaultGroupObj.name : 'Misc';

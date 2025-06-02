@@ -12,6 +12,7 @@ import { diagnosticsCache } from "./utils/diagnostics-cache";
 let parser: ImportParser | null = null;
 let isExtensionEnabled = false;
 let isFormatting = false;
+let lastConfigString = '';
 
 /**
  * Simple check if document can be formatted
@@ -442,9 +443,17 @@ function ensureExtensionEnabled(): boolean {
     return false;
   }
   
-  if (!parser) {
+  // Check if configuration has changed
+  const config = configManager.getParserConfig();
+  const configString = JSON.stringify(config);
+  const configChanged = configString !== lastConfigString;
+  
+  // Create or recreate parser if needed
+  if (!parser || configChanged) {
     try {
-      parser = new ImportParser(configManager.getParserConfig());
+      logDebug(configChanged ? 'Configuration changed, recreating parser' : 'Creating new parser instance');
+      parser = new ImportParser(config);
+      lastConfigString = configString;
       isExtensionEnabled = true;
     } catch (error) {
       logError("Error initializing parser:", error);
@@ -462,7 +471,9 @@ export function activate(context: ExtensionContext): void {
     const validation = configManager.validateCurrentConfiguration();
     
     if (validation.isValid) {
-      parser = new ImportParser(configManager.getParserConfig());
+      const config = configManager.getParserConfig();
+      parser = new ImportParser(config);
+      lastConfigString = JSON.stringify(config);
       isExtensionEnabled = true;
       logDebug('Extension activated with valid configuration');
     } else {
@@ -504,8 +515,17 @@ export function activate(context: ExtensionContext): void {
     const formatOnSaveDisposable = workspace.onDidSaveTextDocument(handleFormatOnSave);
 
     const testCommand = commands.registerCommand("tidyjs.testValidation", testConfigurationValidation);
+    
+    // Listen for configuration changes to invalidate parser cache
+    const configChangeDisposable = workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('tidyjs')) {
+        logDebug('TidyJS configuration changed, parser will be recreated on next use');
+        // Force parser recreation on next use by clearing the config string
+        lastConfigString = '';
+      }
+    });
 
-    context.subscriptions.push(testCommand, formatCommand, formatOnSaveDisposable);
+    context.subscriptions.push(testCommand, formatCommand, formatOnSaveDisposable, configChangeDisposable);
 
     logDebug("Extension activated successfully with config:", JSON.stringify(configManager.getConfig(), null, 2));
 

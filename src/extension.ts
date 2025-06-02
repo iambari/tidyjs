@@ -330,7 +330,7 @@ async function formatImportsCommand(source = "manual"): Promise<void> {
 
     let parserResult = perfMonitor.measureSync(
       'parser_parse',
-      () => parser.parse(documentText) as ParserResult,
+      () => parser!.parse(documentText) as ParserResult,
       { documentLength: documentText.length }
     );
     logDebug("Parser result:", JSON.stringify(parserResult, null, 2));

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Medium benchmark file: ~100 imports
 import React from 'react';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';

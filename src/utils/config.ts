@@ -3,13 +3,6 @@ import vscode from 'vscode';
 import { logDebug, logError } from './log';
 import { cloneDeepWith, difference, uniq } from 'lodash';
 
-export interface ConfigChangeEvent {
-  configKey: string;
-  newValue: unknown;
-  isValid: boolean;
-  errors?: string[];
-}
-
 const DEFAULT_CONFIG: Config = {
   debug: false,
   groups: [
@@ -37,33 +30,8 @@ const DEFAULT_CONFIG: Config = {
 };
 
 class ConfigManager {
-  private config: Config;
-  private eventEmitter: vscode.EventEmitter<ConfigChangeEvent> = new vscode.EventEmitter<ConfigChangeEvent>();
   private subfolders = new Map<string, Config['groups'][0]>();
-  private validationErrors: string[] = [];
-  private isValid = true;
 
-  public readonly onDidConfigChange: vscode.Event<ConfigChangeEvent> = this.eventEmitter.event;
-
-  constructor() {
-    this.config = this.deepCloneConfig(DEFAULT_CONFIG);
-    this.loadConfiguration();
-    this.performInitialValidation();
-  }
-
-  /**
-   * Performs initial validation after configuration loading
-   * Sets internal validation state and logs errors if configuration is invalid
-   */
-  private performInitialValidation(): void {
-    const validation = this.validateConfiguration(this.config);
-    this.isValid = validation.isValid;
-    this.validationErrors = validation.errors;
-    
-    if (!validation.isValid) {
-      logError('Configuration validation failed:', validation.errors);
-    }
-  }
 
   /**
    * Deep clones a configuration object, properly handling RegExp objects
@@ -123,7 +91,7 @@ class ConfigManager {
 
   /**
    * Gets the current configuration
-   * Returns the base configuration without dynamic subfolder groups
+   * Reads directly from VS Code settings each time to ensure synchronization
    * @returns The current configuration object
    * @example
    * ```typescript
@@ -133,40 +101,24 @@ class ConfigManager {
    * ```
    */
   public getConfig(): Config {
-    return this.config;
+    return this.loadConfiguration();
   }
 
   /**
-   * Checks if the current configuration is valid
-   * Configuration is considered invalid if it has validation errors like
-   * duplicate group names, multiple default groups, or duplicate orders
-   * @returns True if the configuration is valid, false otherwise
+   * Validates the current configuration
+   * Reads configuration and checks for validation errors
+   * @returns Validation result with status and errors
    * @example
    * ```typescript
-   * if (!configManager.isConfigurationValid()) {
-   *   const errors = configManager.getValidationErrors();
-   *   console.error('Config errors:', errors);
+   * const validation = configManager.validateCurrentConfiguration();
+   * if (!validation.isValid) {
+   *   console.error('Config errors:', validation.errors);
    * }
    * ```
    */
-  public isConfigurationValid(): boolean {
-    return this.isValid;
-  }
-
-  /**
-   * Gets the validation errors for the current configuration
-   * Returns detailed error messages about configuration issues
-   * @returns Array of validation error messages (empty if valid)
-   * @example
-   * ```typescript
-   * const errors = configManager.getValidationErrors();
-   * if (errors.length > 0) {
-   *   errors.forEach(error => console.error(error));
-   * }
-   * ```
-   */
-  public getValidationErrors(): string[] {
-    return [...this.validationErrors];
+  public validateCurrentConfiguration(): { isValid: boolean; errors: string[] } {
+    const config = this.getConfig();
+    return this.validateConfiguration(config);
   }
 
   /**
@@ -184,7 +136,8 @@ class ConfigManager {
    * ```
    */
   public getGroups(): Config['groups'] {
-    const baseGroups = this.config.groups.map(g => ({
+    const config = this.getConfig();
+    const baseGroups = config.groups.map(g => ({
       ...g,
       isDefault: !!g.isDefault,
     }));
@@ -246,21 +199,14 @@ class ConfigManager {
 
   /**
    * Loads configuration from VS Code workspace settings
-   * Reads all TidyJS settings from VS Code configuration and updates internal state
-   * Validates the loaded configuration and fires change events if updates occur
-   * Handles settings for groups, format options, import order, and excluded folders
-   * @example
-   * ```typescript
-   * // Called automatically on startup and when settings change
-   * configManager.loadConfiguration();
-   * ```
+   * Reads all TidyJS settings from VS Code configuration and returns the config
+   * @returns The loaded configuration
    */
-  public loadConfiguration(): void {
+  private loadConfiguration(): Config {
     const vsConfig = vscode.workspace.getConfiguration('tidyjs');
-    let hasChanges = false;
     
     try {
-      const newConfig = this.deepCloneConfig(this.config);
+      const config = this.deepCloneConfig(DEFAULT_CONFIG);
       const customGroupsSetting = vsConfig.get<{
         name: string;
         match?: string;
@@ -269,7 +215,7 @@ class ConfigManager {
       }[]>('groups');
 
       if (customGroupsSetting !== undefined) {
-        const newGroups = customGroupsSetting.map(group => {
+        config.groups = customGroupsSetting.map(group => {
           return {
             name: group.name,
             match: group.match ? this.parseRegexString(group.match) : undefined,
@@ -277,17 +223,6 @@ class ConfigManager {
             isDefault: !!group.isDefault,
           };
         });
-        logDebug('Current groups:', newConfig.groups);
-        const compareWith = this.config.groups.length === 1 && this.config.groups[0].name === 'Misc' 
-          ? DEFAULT_CONFIG.groups 
-          : this.config.groups;
-
-        if (JSON.stringify(this.groupsToComparable(compareWith)) !== 
-            JSON.stringify(this.groupsToComparable(newGroups))) {
-          newConfig.groups = newGroups;
-          hasChanges = true;
-          logDebug('Groups configuration changes detected');
-        }
       }
       const formatSettings = {
         onSave: vsConfig.get<boolean>('format.onSave'),
@@ -299,117 +234,32 @@ class ConfigManager {
       };
 
       for (const [key, value] of Object.entries(formatSettings)) {
-        if (value !== undefined && newConfig.format[key as keyof typeof newConfig.format] !== value) {
-          (newConfig.format as Record<string, unknown>)[key] = value;
-          hasChanges = true;
+        if (value !== undefined) {
+          (config.format as Record<string, unknown>)[key] = value;
         }
       }
       const importOrder = vsConfig.get<Config['importOrder']>('importOrder');
-      if (importOrder && JSON.stringify(newConfig.importOrder) !== JSON.stringify(importOrder)) {
-        newConfig.importOrder = { ...importOrder };
-        hasChanges = true;
+      if (importOrder) {
+        config.importOrder = { ...importOrder };
       }
       const debug = vsConfig.get<boolean>('debug');
-      if (debug !== undefined && newConfig.debug !== debug) {
-        newConfig.debug = debug;
-        hasChanges = true;
+      if (debug !== undefined) {
+        config.debug = debug;
       }
       const excludedFolders = vsConfig.get<string[]>('excludedFolders');
-      if (excludedFolders !== undefined && JSON.stringify(newConfig.excludedFolders) !== JSON.stringify(excludedFolders)) {
-        newConfig.excludedFolders = [...excludedFolders];
-        hasChanges = true;
+      if (excludedFolders !== undefined) {
+        config.excludedFolders = [...excludedFolders];
       }
-      if (hasChanges) {
-        this.applyConfigurationChanges(newConfig);
-      } else {
-        const validation = this.validateConfiguration(newConfig);
-        if (!validation.isValid) {
-          logError('Current configuration is invalid:', validation.errors);
-          this.validationErrors = validation.errors;
-          this.isValid = false;
-          this.fireConfigChangeEvent('config', this.config, false, validation.errors);
-        } else if (!this.isValid) {
-          this.isValid = true;
-          this.validationErrors = [];
-          this.fireConfigChangeEvent('config', this.config, true);
-        }
-      }
+      return config;
 
     } catch (error) {
       logError('Error loading configuration:', error);
-      this.validationErrors = [`Configuration loading error: ${error}`];
-      this.isValid = false;
-      this.fireConfigChangeEvent('config', this.config, false, this.validationErrors);
+      // Return default config on error
+      return this.deepCloneConfig(DEFAULT_CONFIG);
     }
   }
 
-  /**
-   * Converts groups to comparable format (for change detection)
-   * Extracts only the comparable properties to detect configuration changes
-   * @param groups The groups array to convert
-   * @returns Array of comparable group objects
-   */
-  private groupsToComparable(groups: Config['groups']) {
-    return groups.map(g => ({
-      name: g.name,
-      order: g.order,
-      isDefault: g.isDefault,
-      matchSource: g.match?.source,
-      matchFlags: g.match?.flags,
-    }));
-  }
 
-  /**
-   * Applies configuration changes without auto-repair
-   * Validates the new configuration and updates internal state if valid
-   * Clears subfolder cache and fires change events
-   * @param newConfig The new configuration to apply
-   */
-  private applyConfigurationChanges(newConfig: Config): void {
-    const validation = this.validateConfiguration(newConfig);
-    
-    if (validation.isValid) {
-      this.config = newConfig;
-      this.validationErrors = [];
-      this.isValid = true;
-      this.clearSubfolders();
-      this.fireConfigChangeEvent('config', this.config, true);
-      logDebug('Configuration updated successfully');
-    } else {
-      logError('Invalid configuration detected:', validation.errors);
-      this.validationErrors = validation.errors;
-      this.isValid = false;
-      this.fireConfigChangeEvent('config', this.config, false, validation.errors);
-    }
-  }
-
-  /**
-   * Clears the subfolder cache
-   * Removes all registered app subfolder groups from memory
-   */
-  private clearSubfolders(): void {
-    if (this.subfolders.size > 0) {
-      this.subfolders.clear();
-      logDebug('Cleared cached subfolders due to configuration change');
-    }
-  }
-
-  /**
-   * Fires a configuration change event
-   * Notifies all subscribers about configuration changes with validation status
-   * @param configKey The configuration key that changed
-   * @param newValue The new configuration value
-   * @param isValid Whether the new configuration is valid
-   * @param errors Optional validation error messages
-   */
-  private fireConfigChangeEvent(configKey: string, newValue: unknown, isValid: boolean, errors?: string[]): void {
-    this.eventEmitter.fire({
-      configKey,
-      newValue,
-      isValid,
-      errors,
-    });
-  }
 
   /**
    * Gets configuration optimized for the parser with all groups included
@@ -430,45 +280,6 @@ class ConfigManager {
     };
   }
 
-  /**
-   * Forces a reload of the configuration from VS Code settings
-   * Manually triggers configuration loading, useful when settings may have changed externally
-   * @example
-   * ```typescript
-   * // Force reload after manual settings file changes
-   * configManager.forceReload();
-   * ```
-   */
-  public forceReload(): void {
-    logDebug('Force reloading configuration...');
-    this.loadConfiguration();
-  }
-
-  /**
-   * Subscribes to configuration changes with validation
-   * Registers a callback to be notified when configuration changes occur
-   * The callback receives the new configuration, validation status, and any errors
-   * @param callback Function called when configuration changes occur
-   * @returns Disposable to unsubscribe from the event
-   * @example
-   * ```typescript
-   * const disposable = configManager.onConfigChange((config, isValid, errors) => {
-   *   if (!isValid) {
-   *     console.error('Config validation failed:', errors);
-   *   } else {
-   *     console.log('Config updated successfully');
-   *   }
-   * });
-   * // Later: disposable.dispose();
-   * ```
-   */
-  public onConfigChange(callback: (config: Config, isValid: boolean, errors?: string[]) => void): vscode.Disposable {
-    return this.onDidConfigChange(event => {
-      if (event.configKey === 'config') {
-        callback(this.getConfig(), event.isValid, event.errors);
-      }
-    });
-  }
 }
 
 export const configManager = new ConfigManager();

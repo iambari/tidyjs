@@ -16,7 +16,7 @@ describe('Type Import Handling', () => {
         { name: 'Default', order: 999, isDefault: true }
       ],
       importOrder: { sideEffect: 0, default: 1, named: 2, typeOnly: 3 },
-      format: { onSave: false, singleQuote: true, indent: 2, removeUnusedImports: false },
+      format: { singleQuote: true, indent: 2, removeUnusedImports: false },
       excludedFolders: []
     };
     parser = new ImportParser(config);

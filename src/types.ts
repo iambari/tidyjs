@@ -16,7 +16,7 @@ export interface Config {
     sideEffect: number;
   };
 
-  format: {
+  format?: {
     indent?: number;
     removeUnusedImports?: boolean;
     removeMissingModules?: boolean;

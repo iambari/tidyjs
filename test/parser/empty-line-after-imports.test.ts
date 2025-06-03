@@ -16,10 +16,7 @@ describe('Empty line after imports', () => {
       named: 2,
       typeOnly: 3,
       sideEffect: 0,
-    },
-    format: {
-      onSave: false,
-    },
+    }
   };
 
   it('should add exactly one empty line when no empty line exists', async () => {

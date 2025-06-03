@@ -24,7 +24,6 @@ describe('Inline multiline comments handling', () => {
             typeOnly: 3
         },
         format: {
-            onSave: true,
             singleQuote: true,
             indent: 2
         }

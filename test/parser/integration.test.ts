@@ -59,7 +59,6 @@ describe('ImportParser - Integration Tests', () => {
       typeOnly: 3
     },
     format: {
-      onSave: true,
       singleQuote: true,
       indent: 2
     }
@@ -285,8 +284,7 @@ describe('ImportParser - Integration Tests', () => {
   test('should handle multiple parser instances with different configs', () => {
     const simpleConfig: Config = {
       groups: [{ name: 'All', order: 1, isDefault: true }],
-      importOrder: { default: 1, named: 2, typeOnly: 3, sideEffect: 0 },
-      format: { onSave: true }
+      importOrder: { default: 1, named: 2, typeOnly: 3, sideEffect: 0 }
     };
 
     const parser1 = new ImportParser(realWorldConfig);

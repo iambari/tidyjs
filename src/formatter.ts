@@ -1,17 +1,30 @@
 // Misc
+import { ImportType } from './parser';
+import {
+    maxBy,
+    padEnd,
+    dropRightWhile
+}                     from 'lodash';
+import type {
+    ParsedImport,
+    ParserResult
+}                     from './parser';
+
+// Utils
+import {
+    logDebug,
+    logError
+}                from './utils/log';
+import {
+    isEmptyLine,
+    showMessage
+}                from './utils/misc';
+
+// Types
 import {
     Config,
     FormattedImportGroup
 }                        from './types';
-import { logDebug } from './utils/log';
-import {
-    isEmptyLine,
-    showMessage
-}                   from './utils/misc';
-import { uniqBy, takeRightWhile, dropRightWhile, maxBy, padEnd } from 'lodash';
-import { logError }     from './utils/log';
-import type { ParsedImport, ParserResult } from './parser';
-import { ImportType } from './parser';
 
 const fromKeywordRegex = /\bfrom\b/;
 const multilineCommentStartRegex = /\/\*/;

@@ -24,7 +24,6 @@ describe('Multiline import alignment edge cases', () => {
             typeOnly: 3
         },
         format: {
-            onSave: true,
             singleQuote: true,
             indent: 2
         }

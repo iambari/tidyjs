@@ -27,9 +27,6 @@ describe('Alias preservation', () => {
       typeOnly: 3,
       sideEffect: 0,
     },
-    format: {
-      onSave: false,
-    },
   };
 
   it('should preserve single alias in named import', async () => {

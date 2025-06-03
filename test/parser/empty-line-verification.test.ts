@@ -25,12 +25,8 @@ describe('Empty line verification - Real world scenarios', () => {
       sideEffect: 0,
       default: 1,
       named: 2,
-      typeDefault: 3,
-      typeNamed: 4,
-    },
-    format: {
-      onSave: false,
-    },
+      typeOnly: 4,
+    }
   };
 
   it('should handle React component with no empty line', async () => {

@@ -107,7 +107,6 @@ Each group can have:
 
 #### Format Options
 
--   `tidyjs.format.onSave`: Enable automatic formatting when saving files (default: `false`)
 -   `tidyjs.format.removeUnusedImports`: Remove imports that aren't used in the code (default: `false`)
 -   `tidyjs.format.removeMissingModules`: Remove imports from non-existent modules (default: `false`)
 

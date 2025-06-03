@@ -55,5 +55,10 @@
       "match": "^vscode$",
       "order": 2
     },
+    {
+      "name": "Types",
+      "match": "^(?!@typescript).*types.*$",
+      "order": 4
+    }
   ]
 }

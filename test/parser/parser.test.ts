@@ -31,7 +31,6 @@ describe('ImportParser', () => {
       sideEffect: 0
     },
     format: {
-      onSave: true,
       indent: 2,
       singleQuote: true
     }

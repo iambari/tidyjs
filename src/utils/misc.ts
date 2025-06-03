@@ -1,7 +1,19 @@
-import { DiagnosticSeverity, languages, Uri, window } from 'vscode';
-import { ParserResult, ImportType, ImportSpecifier } from '../parser';
-import { logDebug } from './log';
+// Misc
+import {
+    ImportType,
+    ParserResult
+}                           from '../parser';
 import { diagnosticsCache } from './diagnostics-cache';
+import { logDebug }         from './log';
+
+// VSCode
+import {
+    Uri,
+    window,
+    languages,
+    DiagnosticSeverity
+}                      from 'vscode';
+
 const UNUSED_IMPORT_CODES = ['unused-import', 'import-not-used', '6192', '6133'];
 const MODULE_NOT_FOUND_CODES = ['2307', '2318']; // Cannot find module
 
@@ -165,11 +177,22 @@ export function getUnusedImports(uri: Uri, parserResult: ParserResult, includeMi
       return [];
     }
 
-    const allImportedSpecifiers = parserResult.groups.flatMap(group =>
-      group.imports.flatMap(imp => imp.specifiers.map(spec => 
-        typeof spec === 'string' ? spec : spec.local
-      ))
-    );
+    // Collect all imported names (including default imports)
+    const allImportedNames: string[] = [];
+    
+    for (const group of parserResult.groups) {
+      for (const imp of group.imports) {
+        // Add default imports
+        if (imp.defaultImport) {
+          allImportedNames.push(imp.defaultImport);
+        }
+        // Add named imports
+        for (const spec of imp.specifiers) {
+          const specName = typeof spec === 'string' ? spec : spec.local;
+          allImportedNames.push(specName);
+        }
+      }
+    }
 
     const editor = window.visibleTextEditors.find(e => e.document.uri.toString() === uri.toString());
     if (!editor) {
@@ -189,13 +212,26 @@ export function getUnusedImports(uri: Uri, parserResult: ParserResult, includeMi
 
     for (const diagnostic of unusedDiagnostics) {
       try {
-        const text = document.getText(diagnostic.range).trim();
-
-        if (text && allImportedSpecifiers.includes(text)) {
-          unusedImports.push(text);
+        // Try to extract the variable name from the diagnostic message
+        const match = diagnostic.message.match(/'([^']+)' is declared but its value is never read/);
+        if (match && match[1]) {
+          const unusedName = match[1];
+          // Check if this name is in our imported names
+          if (allImportedNames.includes(unusedName)) {
+            unusedImports.push(unusedName);
+            logDebug(`Found unused import: ${unusedName}`);
+          }
+        } else {
+          // Fallback: try to get text from diagnostic range
+          const text = document.getText(diagnostic.range).trim();
+          if (text && allImportedNames.includes(text)) {
+            unusedImports.push(text);
+            logDebug(`Found unused import from range: ${text}`);
+          }
         }
       } catch (error) {
         // Skip this diagnostic if there's an error processing it
+        logDebug(`Error processing diagnostic: ${error}`);
         continue;
       }
     }

@@ -46,9 +46,7 @@ describe('ImportParser - Group Matching Logic', () => {
       typeOnly: 1,
       sideEffect: 1
     },
-    format: {
-      onSave: true
-    }
+
   };
 
   let parser: ImportParser;
@@ -218,9 +216,6 @@ describe('ImportParser - Group Matching Logic', () => {
         named: 2,
         typeOnly: 3,
         sideEffect: 0
-      },
-      format: {
-        onSave: true
       }
     };
     

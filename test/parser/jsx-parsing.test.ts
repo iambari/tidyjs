@@ -11,7 +11,7 @@ describe('JSX Parsing Integration', () => {
         { name: 'Misc', order: 999, isDefault: true }
       ],
       importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 },
-      format: { onSave: false, singleQuote: true, indent: 2, removeUnusedImports: false },
+      format: { singleQuote: true, indent: 2, removeUnusedImports: false },
       excludedFolders: []
     };
     parser = new ImportParser(config);

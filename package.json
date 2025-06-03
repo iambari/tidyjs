@@ -143,6 +143,7 @@
     "@babel/traverse": "^7.26.10",
     "@babel/types": "^7.26.10",
     "@eslint/js": "^9.22.0",
+    "@jest/globals": "30.0.0-beta.3",
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.17",
     "@types/node": "~20.17.30",

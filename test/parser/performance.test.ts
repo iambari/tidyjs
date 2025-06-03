@@ -28,9 +28,7 @@ describe('ImportParser - Performance Tests', () => {
       typeOnly: 3,
       sideEffect: 0
     },
-    format: {
-      onSave: true
-    }
+
   };
 
   let parser: ImportParser;

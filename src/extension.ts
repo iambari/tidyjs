@@ -1,13 +1,42 @@
-import { formatImports } from "./formatter";
-import { ImportParser, ParserResult, InvalidImport } from "./parser";
-import { Range, window, commands, workspace, languages, TextEdit, CancellationTokenSource } from "vscode";
-import type { ExtensionContext, DocumentFormattingEditProvider, TextDocument, FormattingOptions, CancellationToken } from "vscode";
-import { configManager } from "./utils/config";
-import { logDebug, logError } from "./utils/log";
-import { getUnusedImports, removeUnusedImports, showMessage } from "./utils/misc";
-import { debounce } from "lodash";
-import { perfMonitor } from "./utils/performance";
-import { diagnosticsCache } from "./utils/diagnostics-cache";
+// Misc
+import { formatImports } from './formatter';
+import {
+    ImportParser,
+    ParserResult,
+    InvalidImport
+}                        from './parser';
+
+// VSCode
+import {
+    Range,
+    window,
+    commands,
+    TextEdit,
+    workspace,
+    languages,
+    CancellationTokenSource
+}                                  from 'vscode';
+import type {
+    TextDocument,
+    ExtensionContext,
+    FormattingOptions,
+    CancellationToken,
+    DocumentFormattingEditProvider
+}                                  from 'vscode';
+
+// Utils
+import { configManager }    from './utils/config';
+import { diagnosticsCache } from './utils/diagnostics-cache';
+import {
+    logDebug,
+    logError
+}                           from './utils/log';
+import {
+    showMessage,
+    getUnusedImports,
+    removeUnusedImports
+}                           from './utils/misc';
+import { perfMonitor }      from './utils/performance';
 
 let parser: ImportParser | null = null;
 let lastConfigString = '';
@@ -42,10 +71,8 @@ class TidyJSFormattingProvider implements DocumentFormattingEditProvider {
       const documentText = document.getText();
 
       // Vérification de sécurité pour éviter de formater des logs
-      if (documentText.includes('[DEBUG]') || documentText.includes('Parser result:')) {
-        logError('Document appears to contain debug logs instead of source code - skipping format');
-        return undefined;
-      }
+      // Supprimer cette vérification car elle est trop restrictive et empêche le formatage
+      // de fichiers légitimes qui pourraient contenir ces chaînes dans leur code
 
       if (!parser) {
         logError('Parser not initialized');
@@ -78,10 +105,10 @@ class TidyJSFormattingProvider implements DocumentFormattingEditProvider {
       }
 
       // Gérer la suppression des imports non utilisés
-      if (configManager.getConfig().format.removeUnusedImports) {
+      if (configManager.getConfig().format?.removeUnusedImports) {
         try {
           const config = perfMonitor.measureSync('config_getConfig', () => configManager.getConfig());
-          const includeMissingModules = config.format.removeMissingModules ?? false;
+          const includeMissingModules = config.format?.removeMissingModules ?? false;
           
           const diagnostics = perfMonitor.measureSync(
             'get_diagnostics',
@@ -151,7 +178,8 @@ class TidyJSFormattingProvider implements DocumentFormattingEditProvider {
  * Simple check if document can be formatted
  */
 function canFormatDocument(document: import("vscode").TextDocument): boolean {
-  return !(document.isDirty && document.isUntitled);
+  // Permettre le formatage de tous les documents
+  return true;
 }
 
 /**

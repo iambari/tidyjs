@@ -15,10 +15,7 @@ describe('ImportParser - Alias Import Parsing', () => {
       named: 2,
       typeOnly: 3,
       sideEffect: 0,
-    },
-    format: {
-      onSave: false,
-    },
+    }
   };
 
   it('should parse import aliases correctly', () => {

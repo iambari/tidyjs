@@ -16,9 +16,7 @@ describe('Double Format Test', () => {
       named: 2,
       typeOnly: 3
     },
-    format: {
-      onSave: false
-    }
+
   };
 
   let parser: ImportParser;

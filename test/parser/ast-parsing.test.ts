@@ -17,9 +17,7 @@ describe('ImportParser - AST Parsing Specifics', () => {
       typeOnly: 3,
       sideEffect: 0
     },
-    format: {
-      onSave: true
-    }
+
   };
 
   let parser: ImportParser;

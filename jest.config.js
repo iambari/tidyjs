@@ -10,5 +10,12 @@ module.exports = {
     transform: {
         "^.+\\.tsx?$": "ts-jest"
     },
-    moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"]
+    moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+    testPathIgnorePatterns: [
+        "/node_modules/",
+        "/.vscode-test/"
+    ],
+    modulePathIgnorePatterns: [
+        "/.vscode-test/"
+    ]
 };

@@ -30,7 +30,6 @@ const DEFAULT_CONFIG: Config = {
     sideEffect: 3,
   },
   format: {
-    onSave: true,
     removeUnusedImports: true,
   },
 };
@@ -252,6 +251,103 @@ describe('Unused Imports Detection and Removal', () => {
       const allImports = result.groups.flatMap(group => group.imports);
       expect(allImports).toHaveLength(1);
       expect(allImports[0].source).toBe('side-effect');
+    });
+
+    test('should remove unused React default import from real-world example', () => {
+      const sourceCode = `
+// Misc
+import React       from 'react';
+import type { FC } from 'react';
+
+// @app/dossier
+import LiaisonsComptablesListComponent    from '@app/dossier/components/postproduction/liaisons-comptables/LiaisonsComptablesListComponent';
+import PostProductionWrapperTabsComponent from '@app/dossier/pages/postproduction/PostProductionWrapperTabsComponent';
+import { LiaisonsComptablesProvider }     from '@app/dossier/providers/postproduction/contexts/LiaisonsComptablesContext';
+
+const LiaisonsComptablesPage: FC = () => (
+    <PostProductionWrapperTabsComponent activeTab='liaisons-comptables'>
+        <LiaisonsComptablesProvider>
+            <LiaisonsComptablesListComponent />
+        </LiaisonsComptablesProvider>
+    </PostProductionWrapperTabsComponent>
+);
+
+export default LiaisonsComptablesPage;
+`;
+
+      const parserResult = parser.parse(sourceCode);
+      
+      // React is unused in this component
+      const unusedImports = ['React'];
+      
+      const result = removeUnusedImports(parserResult, unusedImports);
+
+      // Check that React default import is removed
+      const allImports = result.groups.flatMap(group => group.imports);
+      const reactDefaultImport = allImports.find(imp => 
+        imp.source === 'react' && imp.defaultImport === 'React'
+      );
+      expect(reactDefaultImport).toBeUndefined();
+
+      // Check that type { FC } import is preserved
+      const reactTypeImport = allImports.find(imp => 
+        imp.source === 'react' && imp.type === 'typeNamed'
+      );
+      expect(reactTypeImport).toBeDefined();
+      expect(reactTypeImport!.specifiers).toContain('FC');
+
+      // Check that other imports are preserved
+      expect(allImports.find(imp => imp.source.includes('LiaisonsComptablesListComponent'))).toBeDefined();
+      expect(allImports.find(imp => imp.source.includes('PostProductionWrapperTabsComponent'))).toBeDefined();
+      expect(allImports.find(imp => imp.source.includes('LiaisonsComptablesContext'))).toBeDefined();
+    });
+
+    test('should handle React import removal when only type imports remain', () => {
+      const sourceCode = `
+import React from 'react';
+import type { FC, ReactNode } from 'react';
+import { memo } from 'react';
+
+interface Props {
+  children: ReactNode;
+}
+
+const Component: FC<Props> = memo(({ children }) => {
+  return <div>{children}</div>;
+});
+
+export default Component;
+`;
+
+      const parserResult = parser.parse(sourceCode);
+      
+      // React default import is unused (JSX transform doesn't need it)
+      const unusedImports = ['React'];
+      
+      const result = removeUnusedImports(parserResult, unusedImports);
+
+      // Should remove React default but keep type imports and memo
+      const allImports = result.groups.flatMap(group => group.imports);
+      
+      // React default should be gone
+      const reactDefaultImport = allImports.find(imp => 
+        imp.source === 'react' && imp.defaultImport === 'React'
+      );
+      expect(reactDefaultImport).toBeUndefined();
+
+      // Type imports should remain
+      const reactTypeImport = allImports.find(imp => 
+        imp.source === 'react' && imp.type === 'typeNamed'
+      );
+      expect(reactTypeImport).toBeDefined();
+      expect(reactTypeImport!.specifiers).toContain('FC');
+      expect(reactTypeImport!.specifiers).toContain('ReactNode');
+
+      // Named import (memo) should remain
+      const reactNamedImport = allImports.find(imp => 
+        imp.source === 'react' && imp.type === 'named' && imp.specifiers.includes('memo')
+      );
+      expect(reactNamedImport).toBeDefined();
     });
   });
 

@@ -1,8 +1,12 @@
-import { parse } from "@typescript-eslint/parser";
-import { TSESTree } from "@typescript-eslint/types";
+// Misc
+import { parse }    from '@typescript-eslint/parser';
+import { TSESTree } from '@typescript-eslint/types';
 
-import { Config as ExtensionGlobalConfig } from "./types";
-import { GroupMatcher } from "./utils/group-matcher";
+// Utils
+import { GroupMatcher } from './utils/group-matcher';
+
+// Types
+import { Config as ExtensionGlobalConfig } from './types';
 
 export type ConfigImportGroup = {
   name: string;

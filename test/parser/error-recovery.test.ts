@@ -16,9 +16,7 @@ describe('ImportParser - Error Recovery and Invalid Imports', () => {
       typeOnly: 3,
       sideEffect: 0
     },
-    format: {
-      onSave: true
-    }
+
   };
 
   let parser: ImportParser;

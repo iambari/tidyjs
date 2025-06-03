@@ -22,9 +22,7 @@ describe('ImportParser - Import Sorting Within Groups', () => {
       named: 2,
       typeOnly: 3
     },
-    format: {
-      onSave: true
-    }
+
   };
 
   let parser: ImportParser;

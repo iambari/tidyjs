@@ -16,9 +16,6 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
       named: 1,
       typeOnly: 1,
       sideEffect: 1
-    },
-    format: {
-      onSave: true
     }
   };
 

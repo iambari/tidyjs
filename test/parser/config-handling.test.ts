@@ -23,7 +23,6 @@ describe('ImportParser - Configuration Handling', () => {
       sideEffect: 0
     },
     format: {
-      onSave: true,
       singleQuote: true,
       indent: 2
     }
@@ -112,9 +111,6 @@ describe('ImportParser - Configuration Handling', () => {
         named: 2,
         typeOnly: 3,
         sideEffect: 0
-      },
-      format: {
-        onSave: true
       }
     };
 
@@ -264,9 +260,6 @@ describe('ImportParser - Configuration Handling', () => {
         named: 2,
         typeOnly: 3,
         sideEffect: 0
-      },
-      format: {
-        onSave: true
       }
     };
 

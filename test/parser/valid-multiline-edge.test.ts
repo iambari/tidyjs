@@ -18,7 +18,6 @@ describe('Valid multiline import edge cases', () => {
             typeOnly: 3
         },
         format: {
-            onSave: true,
             singleQuote: true,
             indent: 2
         }

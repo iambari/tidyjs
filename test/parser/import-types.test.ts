@@ -18,7 +18,6 @@ describe('ImportParser - Import Types Detection', () => {
       sideEffect: 0
     },
     format: {
-      onSave: true,
       singleQuote: true
     }
   };

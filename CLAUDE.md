@@ -74,7 +74,7 @@ import React, { useState, type FC } from 'react';
 
 // Parser Output: 3 separate imports
 1. Default: React
-2. Named: useState  
+2. Named: useState
 3. Type Named: FC
 
 // Final Output: 3 properly formatted imports
@@ -98,19 +98,20 @@ import type { FC } from 'react';
 ## Testing
 
 -   Jest with ts-jest for unit tests
--   Tests located in `test/parser/` directory  
+-   Tests located in `test/parser/` directory
 -   Mock VS Code API provided in `test/mocks/vscode.js`
 -   Test fixtures in `test/fixtures/` with input/expected pairs
 -   Performance benchmarks included for large files
 -   **Comprehensive test coverage** for all import types and mixed import scenarios
 -   **Bug reproduction tests** to prevent regressions
+-   **After adding any feature** to prevent bugs
 
 ## Recent Improvements and Bug Fixes
 
 ### Major Bug Fixes ✅
 
 1. **Mixed Import Separation**: Fixed critical bug where mixed imports like `import { useState, type FC } from 'react'` were not properly separated
-2. **RegExp Cache Serialization**: Fixed cache invalidation bug where RegExp patterns in configuration were serialized as `{}` 
+2. **RegExp Cache Serialization**: Fixed cache invalidation bug where RegExp patterns in configuration were serialized as `{}`
 3. **Duplicate Validation**: Fixed broken duplicate detection in configuration validation using `lodash.difference`
 4. **UI Interruption**: Fixed debug logging that constantly interrupted users with output panel pop-ups
 5. **Namespace Import Handling**: Fixed consolidation issues with mixed default + namespace imports
@@ -122,19 +123,20 @@ import type { FC } from 'react';
 3. **Advanced Caching**: Optimized cache system with proper RegExp serialization support
 4. **Robust Validation**: Enhanced configuration validation with detailed error reporting
 5. **Non-Intrusive Logging**: Debug logging without UI interruption (`preserveFocus: true`)
+6. **Auto-Order Resolution**: Intelligent automatic ordering system that resolves group order collisions and assigns missing orders
 
 ### Supported Import Types
 
-| Type | Internal | Example | Separation Support |
-|------|----------|---------|-------------------|
-| Side Effect | `sideEffect` | `import './styles.css';` | ✅ |
-| Default | `default` | `import React from 'react';` | ✅ |
-| Named | `named` | `import { useState } from 'react';` | ✅ |
-| Namespace | `default` | `import * as Utils from './utils';` | ✅ |
-| Type Default | `typeDefault` | `import type React from 'react';` | ✅ |
-| Type Named | `typeNamed` | `import type { FC } from 'react';` | ✅ |
-| Type Namespace | `typeDefault` | `import type * as Types from './types';` | ✅ |
-| **Mixed Imports** | **Multiple** | `import React, { useState, type FC } from 'react';` | **✅ NEW** |
+| Type              | Internal      | Example                                             | Separation Support |
+| ----------------- | ------------- | --------------------------------------------------- | ------------------ |
+| Side Effect       | `sideEffect`  | `import './styles.css';`                            | ✅                 |
+| Default           | `default`     | `import React from 'react';`                        | ✅                 |
+| Named             | `named`       | `import { useState } from 'react';`                 | ✅                 |
+| Namespace         | `default`     | `import * as Utils from './utils';`                 | ✅                 |
+| Type Default      | `typeDefault` | `import type React from 'react';`                   | ✅                 |
+| Type Named        | `typeNamed`   | `import type { FC } from 'react';`                  | ✅                 |
+| Type Namespace    | `typeDefault` | `import type * as Types from './types';`            | ✅                 |
+| **Mixed Imports** | **Multiple**  | `import React, { useState, type FC } from 'react';` | **✅ NEW**         |
 
 ### Mixed Import Examples
 
@@ -145,7 +147,7 @@ import type { FC } from 'react';
 import React, { useState } from 'react';
 // → import React from 'react'; + import { useState } from 'react';
 
-// Named + Type Named  
+// Named + Type Named
 import { useState, type FC } from 'react';
 // → import { useState } from 'react'; + import type { FC } from 'react';
 
@@ -161,3 +163,114 @@ import React, * as ReactDOM from 'react-dom';
 import type React, { FC } from 'react';
 // → import type React from 'react'; + import type { FC } from 'react';
 ```
+
+## Auto-Order Resolution System
+
+TidyJS now includes an intelligent auto-order resolution system that automatically handles group ordering configuration, eliminating the need for manual order management and preventing configuration errors.
+
+### How It Works
+
+The auto-order system processes group configurations in two phases:
+
+1. **Collision Resolution**: Groups with explicit orders that conflict are automatically pushed to the next available order slot
+2. **Auto-Assignment**: Groups without explicit orders are automatically assigned sequential order numbers starting from 0
+
+### Configuration Examples
+
+#### Before Auto-Order (Manual Management)
+```json
+{
+  "tidyjs.groups": [
+    { "name": "React", "match": "^react", "order": 1 },
+    { "name": "Utils", "match": "^@/utils", "order": 1 },  // ❌ Collision!
+    { "name": "Lodash", "match": "^lodash" },              // ❌ Missing order
+    { "name": "Components", "match": "^@/components" },    // ❌ Missing order
+    { "name": "Misc", "order": 0, "isDefault": true }
+  ]
+}
+```
+
+#### After Auto-Order (Automatic Resolution)
+```
+Final order assignment:
+- Misc: 0 (default group, kept original)
+- Lodash: 1 (auto-assigned)
+- Components: 2 (auto-assigned) 
+- React: 1 → 3 (kept original, no collision)
+- Utils: 1 → 4 (collision resolved, pushed to next slot)
+```
+
+### Key Features
+
+#### ✅ **Collision Resolution**
+- Groups with duplicate orders are automatically pushed to the next available slot
+- Original order preference is preserved when possible
+- Collision adjustments are logged for transparency
+
+#### ✅ **Missing Order Assignment**
+- Groups without explicit `order` values get auto-assigned sequential numbers
+- Assignment starts from 0 and avoids conflicts with manual orders
+- Maintains predictable and consistent ordering
+
+#### ✅ **Smart Validation**
+```typescript
+// Valid order values (automatically handled)
+{ "order": 0 }     // ✅ Valid (default groups)
+{ "order": 5 }     // ✅ Valid 
+{ "order": 1001 }  // ⚠️ Valid but warns about high values
+
+// Invalid order values (treated as missing)
+{ "order": -1 }    // ❌ Negative → auto-assigned
+{ "order": 1.5 }   // ❌ Decimal → auto-assigned
+{ "order": "3" }   // ❌ String → auto-assigned
+```
+
+#### ✅ **Debug Logging**
+```
+[DEBUG] Group "Utils" order adjusted from 3 to 4 due to collision
+[DEBUG] High order value detected: 1001 for group "External". Consider using lower values.
+```
+
+### Real-World Scenarios
+
+#### Scenario 1: Team Configuration Conflicts
+```json
+// Developer A adds:
+{ "name": "API", "match": "^@/api", "order": 2 }
+
+// Developer B adds (same order):
+{ "name": "Hooks", "match": "^@/hooks", "order": 2 }
+
+// Result: Auto-resolved to API: 2, Hooks: 3
+```
+
+#### Scenario 2: Legacy Migration
+```json
+// Old config with missing orders:
+[
+  { "name": "React", "match": "^react" },           // Gets order: 0
+  { "name": "External", "match": "^[^@]" },         // Gets order: 1  
+  { "name": "Internal", "match": "^@/" },           // Gets order: 2
+  { "name": "Misc", "order": 99, "isDefault": true} // Keeps order: 99
+]
+```
+
+#### Scenario 3: Configuration Evolution
+```json
+// Start simple:
+{ "name": "External", "order": 1 }
+{ "name": "Internal", "order": 2 }
+
+// Add more groups (no order conflicts):
+{ "name": "React", "match": "^react" }      // Auto-assigned: 0
+{ "name": "Utils", "order": 1 }             // Collision → pushed to 3
+// Final: React(0), External(1), Internal(2), Utils(3)
+```
+
+### Migration Benefits
+
+- **Zero Breaking Changes**: Existing configurations continue to work
+- **Reduced Configuration Errors**: No more duplicate order validation failures  
+- **Simplified Setup**: New groups can be added without calculating order numbers
+- **Team Collaboration**: Multiple developers can add groups without conflicts
+- **Future-Proof**: Configuration grows organically without manual maintenance

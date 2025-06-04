@@ -2,9 +2,9 @@ import { configManager } from '../../src/utils/config';
 import { Config } from '../../src/types';
 import { difference, uniq } from 'lodash';
 
-describe('ConfigManager - Duplicate Orders Validation Bug', () => {
+describe('ConfigManager - Auto Order Resolution', () => {
 
-  test('should detect duplicate group orders - BUG FIXED', () => {
+  test('should auto-resolve duplicate group orders - NEW BEHAVIOR', () => {
     const configWithDuplicateOrders: Config = {
       groups: [
         {
@@ -15,7 +15,7 @@ describe('ConfigManager - Duplicate Orders Validation Bug', () => {
         },
         {
           name: 'Group B', 
-          order: 1, // Same order as Group A - should be invalid
+          order: 1, // Same order as Group A - will be auto-resolved
           isDefault: false,
           match: /^lodash$/
         },
@@ -35,12 +35,12 @@ describe('ConfigManager - Duplicate Orders Validation Bug', () => {
 
     const validation = configManager.validateConfiguration(configWithDuplicateOrders);
     
-    // Bug is now FIXED - validation correctly detects duplicate orders
-    expect(validation.isValid).toBe(false);
-    expect(validation.errors[0]).toContain('Duplicate group orders found: 1');
+    // NEW BEHAVIOR: Order collisions are auto-resolved, so validation passes
+    expect(validation.isValid).toBe(true);
+    expect(validation.errors).toHaveLength(0);
   });
 
-  test('should detect multiple duplicate group orders', () => {
+  test('should auto-resolve multiple duplicate group orders', () => {
     const configWithMultipleDuplicates: Config = {
       groups: [
         {
@@ -51,7 +51,7 @@ describe('ConfigManager - Duplicate Orders Validation Bug', () => {
         },
         {
           name: 'Group B',
-          order: 1, // Duplicate order
+          order: 1, // Duplicate order - will be auto-resolved
           isDefault: false,
           match: /^lodash$/
         },
@@ -63,7 +63,7 @@ describe('ConfigManager - Duplicate Orders Validation Bug', () => {
         },
         {
           name: 'Group D',
-          order: 2, // Another duplicate order
+          order: 2, // Another duplicate order - will be auto-resolved
           isDefault: false,
           match: /^angular$/
         },
@@ -83,8 +83,9 @@ describe('ConfigManager - Duplicate Orders Validation Bug', () => {
 
     const validation = configManager.validateConfiguration(configWithMultipleDuplicates);
     
-    expect(validation.isValid).toBe(false);
-    expect(validation.errors[0]).toContain('Duplicate group orders found: 1, 2');
+    // NEW BEHAVIOR: Order collisions are auto-resolved, so validation passes
+    expect(validation.isValid).toBe(true);
+    expect(validation.errors).toHaveLength(0);
   });
 
   test('should pass validation with unique group orders', () => {

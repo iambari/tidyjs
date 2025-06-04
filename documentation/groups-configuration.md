@@ -13,12 +13,14 @@ Each group in the `tidyjs.groups` array is an object with the following properti
 ```typescript
 {
   "name": string,          // Required: Display name for the group
-  "order": number,         // Required: Sort order (lower numbers appear first)
+  "order": number,         // Optional: Sort order (auto-assigned if missing)
   "match": string,         // Optional: Regex pattern to match import paths
   "isDefault": boolean,    // Optional: Mark as default group for unmatched imports
   "priority": number       // Optional: Priority for matching (rarely needed)
 }
 ```
+
+> **Note**: The `order` property is now optional thanks to the Auto-Order Resolution system. See [Auto-Order Resolution](#auto-order-resolution) below.
 
 ## Configuration Examples
 
@@ -186,6 +188,65 @@ Patterns can be specified in two ways:
 3. **Default fallback**: If no patterns match, the import goes to the default group
 4. **Display order**: After matching, groups are sorted by their `order` value
 
+## Auto-Order Resolution
+
+TidyJS includes an intelligent auto-order resolution system that automatically handles group ordering, eliminating configuration errors and simplifying setup.
+
+### How It Works
+
+The auto-order system operates in two phases:
+
+1. **Collision Resolution**: Groups with conflicting explicit orders are automatically moved to the next available slot
+2. **Auto-Assignment**: Groups without explicit orders receive sequential numbers starting from 0
+
+### Benefits
+
+- ✅ **No Configuration Errors**: Order collisions are automatically resolved
+- ✅ **Simplified Setup**: No need to calculate order numbers manually  
+- ✅ **Team-Friendly**: Multiple developers can add groups without conflicts
+- ✅ **Zero Breaking Changes**: Existing configurations continue working
+
+### Example: Auto-Resolution in Action
+
+```json
+// Configuration with conflicts:
+{
+  "tidyjs.groups": [
+    { "name": "React", "match": "^react", "order": 1 },
+    { "name": "Utils", "match": "^@/utils", "order": 1 },    // Collision!
+    { "name": "Lodash", "match": "^lodash" },                // Missing order
+    { "name": "Components", "match": "^@/components" },      // Missing order  
+    { "name": "Misc", "order": 0, "isDefault": true }
+  ]
+}
+```
+
+**Auto-Resolution Result:**
+```
+Final order assignment:
+- Misc: 0 (kept original, default group)
+- Lodash: 1 (auto-assigned) 
+- Components: 2 (auto-assigned)
+- React: 1 → 3 (kept original)
+- Utils: 1 → 4 (collision resolved)
+```
+
+### Debug Information
+
+When order adjustments occur, debug information is logged:
+
+```
+[DEBUG] Group "Utils" order adjusted from 1 to 4 due to collision
+[DEBUG] High order value detected: 1001 for group "External"
+```
+
+To see these logs, enable debug mode:
+```json
+{
+  "tidyjs.debug": true
+}
+```
+
 ## Validation Rules
 
 TidyJS validates your group configuration and will show errors for:
@@ -193,8 +254,9 @@ TidyJS validates your group configuration and will show errors for:
 1. **No default group**: At least one group must have `isDefault: true`
 2. **Multiple default groups**: Only one group can be marked as default
 3. **Duplicate names**: Each group must have a unique name
-4. **Duplicate orders**: Each group should have a unique order value
-5. **Invalid regex**: Match patterns must be valid regular expressions
+4. **Invalid regex**: Match patterns must be valid regular expressions
+
+> **Note**: Order conflicts are no longer validation errors - they're automatically resolved!
 
 ## Best Practices
 
@@ -235,15 +297,31 @@ Start with broad patterns and add specific ones as needed:
 ```json
 {
   "tidyjs.groups": [
-    { "name": "External", "match": "/^[^@.]/" },   // Simple: not @ or .
-    { "name": "Scoped", "match": "/^@/" },         // Simple: starts with @
-    { "name": "Local", "match": "/^\\./" },        // Simple: starts with .
-    { "name": "Other", "isDefault": true }
+    { "name": "External", "match": "/^[^@.]/" },   // Auto-assigned order: 0
+    { "name": "Scoped", "match": "/^@/" },         // Auto-assigned order: 1
+    { "name": "Local", "match": "/^\\./" },        // Auto-assigned order: 2
+    { "name": "Other", "isDefault": true }         // Auto-assigned order: 3
   ]
 }
 ```
 
-### 4. Test Your Patterns
+### 4. Mix Manual and Auto-Assignment
+
+You can combine explicit orders with auto-assignment:
+
+```json
+{
+  "tidyjs.groups": [
+    { "name": "React", "match": "/^react/", "order": 0 },     // Explicit order
+    { "name": "External", "match": "/^[^@.]/" },              // Auto-assigned: 1
+    { "name": "Important", "match": "/^@critical/", "order": 1 }, // Collision → 2
+    { "name": "Internal", "match": "/^@/" },                  // Auto-assigned: 3
+    { "name": "Other", "isDefault": true }                    // Auto-assigned: 4
+  ]
+}
+```
+
+### 5. Test Your Patterns
 
 Use a regex tester to verify your patterns match the expected import paths:
 - `react` → Should match `/^react/`
@@ -276,6 +354,8 @@ Common errors and solutions:
 - **"Duplicate group names found"**: Ensure each group has a unique `name`
 - **"Invalid regex pattern"**: Check your regex syntax, especially escape characters
 
+> **Note**: "Duplicate group orders" errors no longer occur - order conflicts are automatically resolved by the Auto-Order Resolution system.
+
 ### Pattern Not Working
 
 Test your pattern:
@@ -294,13 +374,13 @@ console.log(pattern.test('react'));            // Should be false
 {
   "tidyjs.groups": [
     { "name": "React", "match": "/^(react|react-dom)$/", "order": 0 },
-    { "name": "Router", "match": "/^react-router/", "order": 1 },
-    { "name": "UI", "match": "/^(@mui|antd|semantic-ui)/", "order": 2 },
-    { "name": "State", "match": "/^(redux|mobx|recoil)/", "order": 3 },
-    { "name": "External", "match": "/^[a-zA-Z]/", "order": 4 },
-    { "name": "Internal", "match": "/^@/", "order": 5 },
-    { "name": "Local", "match": "/^\\./", "order": 6 },
-    { "name": "Other", "order": 7, "isDefault": true }
+    { "name": "Router", "match": "/^react-router/" },              // Auto: 1
+    { "name": "UI", "match": "/^(@mui|antd|semantic-ui)/" },       // Auto: 2
+    { "name": "State", "match": "/^(redux|mobx|recoil)/" },        // Auto: 3
+    { "name": "External", "match": "/^[a-zA-Z]/" },                // Auto: 4
+    { "name": "Internal", "match": "/^@/" },                       // Auto: 5
+    { "name": "Local", "match": "/^\\./", "order": 10 },           // Explicit
+    { "name": "Other", "isDefault": true }                         // Auto: 11
   ]
 }
 ```

@@ -7,6 +7,7 @@ A VS Code extension that automatically organizes and formats import declarations
 -   **Smart Import Separation**: Automatically separates mixed imports (e.g., `import { useState, type FC } from 'react'` becomes two separate imports)
 -   **Comprehensive Type Support**: Full support for all import types including TypeScript type imports and namespaces
 -   **Intelligent Grouping**: Group imports by configurable categories with regex patterns
+-   **Auto-Order Resolution**: Intelligent automatic ordering that resolves conflicts and assigns missing orders
 -   **Perfect Alignment**: Align 'from' keywords for improved readability
 -   **Flexible Sorting**: Sort imports by customizable type hierarchy
 -   **Advanced Cache System**: Smart caching with RegExp support for optimal performance
@@ -145,10 +146,12 @@ Each group can have:
 
 -   `name` (required): The name of the group (used in comments)
 -   `match` (optional): Regex pattern to match import paths
--   `order` (required): Numeric order for sorting groups
+-   `order` (optional): Numeric order for sorting groups (auto-assigned if missing)
 -   `isDefault` (optional): Mark as default group for unmatched imports
 
 **Important**: Exactly one group must have `isDefault: true`
+
+> **New**: The `order` property is now optional! TidyJS includes an intelligent Auto-Order Resolution system that automatically assigns order numbers and resolves conflicts. See [Groups Configuration Guide](./documentation/groups-configuration.md#auto-order-resolution) for details.
 
 #### Format Options
 

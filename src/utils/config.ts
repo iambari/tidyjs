@@ -50,11 +50,75 @@ class ConfigManager {
   }
 
   /**
+   * Automatically computes and assigns orders to groups, handling collisions intelligently
+   * Groups with explicit orders keep their values (unless there are collisions)
+   * Groups without orders get auto-assigned the next available slot
+   * @param groups The array of groups to process
+   * @returns Array of groups with computed orders, sorted by order
+   */
+  private computeAutoOrder(groups: Config['groups']): Config['groups'] {
+    const usedOrders = new Set<number>();
+    const withOrders: Config['groups'] = [];
+    const withoutOrders: Config['groups'] = [];
+
+    // Separate groups with explicit orders from those without
+    for (const grp of groups) {
+      if (typeof grp.order === 'number' && Number.isInteger(grp.order) && grp.order >= 0) {
+        // Warn about unreasonably high order values
+        if (grp.order > 1000) {
+          logDebug(`High order value detected: ${grp.order} for group "${grp.name}". Consider using lower values.`);
+        }
+        withOrders.push({ ...grp, originalOrder: grp.order } as Config['groups'][0] & { originalOrder: number });
+      } else {
+        withoutOrders.push({ ...grp });
+      }
+    }
+
+    // Process groups with explicit orders, resolving collisions
+    for (const item of withOrders) {
+      const typedItem = item as Config['groups'][0] & { originalOrder: number };
+      let desired = typedItem.originalOrder;
+
+      // If desired order is already taken, find next available slot
+      while (usedOrders.has(desired)) {
+        desired++;
+      }
+
+      // Reserve this order and assign it
+      usedOrders.add(desired);
+      item.order = desired;
+
+      // Log if we had to adjust the order due to collision
+      if (desired !== typedItem.originalOrder) {
+        logDebug(`Group "${item.name}" order adjusted from ${typedItem.originalOrder} to ${desired} due to collision.`);
+      }
+    }
+
+    // Assign orders to groups without explicit orders
+    let candidate = 0;
+    for (const item of withoutOrders) {
+      // Find next available order starting from 0
+      while (usedOrders.has(candidate)) {
+        candidate++;
+      }
+      
+      usedOrders.add(candidate);
+      item.order = candidate;
+      candidate++;
+    }
+
+    // Combine and sort by order
+    const allResolved = [...withOrders, ...withoutOrders];
+    allResolved.sort((a, b) => a.order - b.order);
+
+    return allResolved;
+  }
+
+  /**
    * Validates the configuration and returns validation errors
    * Checks for:
    * - Exactly one default group
-   * - No duplicate group orders
-   * - No duplicate group names
+   * - No duplicate group names (order collisions are now auto-resolved)
    * @param config The configuration to validate
    * @returns Object containing validation status and error messages
    */
@@ -68,13 +132,8 @@ class ConfigManager {
       const groupNames = defaultGroups.map(g => `"${g.name}"`).join(', ');
       errors.push(`Multiple groups are marked as default: ${groupNames}. Only one group can be the default.`);
     }
-    const orders = config.groups.map(g => g.order);
-    const uniqueOrders = uniq(orders);
-    if (orders.length !== uniqueOrders.length) {
-      const duplicateOrders = orders.filter((order, index) => orders.indexOf(order) !== index);
-      const uniqueDuplicates = uniq(duplicateOrders);
-      errors.push(`Duplicate group orders found: ${uniqueDuplicates.join(', ')}. Each group should have a unique order.`);
-    }
+
+    // Check for duplicate group names
     const names = config.groups.map(g => g.name);
     const uniqueNames = uniq(names);
     if (names.length !== uniqueNames.length) {
@@ -223,7 +282,7 @@ class ConfigManager {
       }[]>('groups');
 
       if (customGroupsSetting !== undefined) {
-        config.groups = customGroupsSetting.map(group => {
+        const rawGroups = customGroupsSetting.map(group => {
           return {
             name: group.name,
             match: group.match ? this.parseRegexString(group.match) : undefined,
@@ -231,6 +290,9 @@ class ConfigManager {
             isDefault: !!group.isDefault,
           };
         });
+        
+        // Apply auto-order computation to resolve collisions and assign missing orders
+        config.groups = this.computeAutoOrder(rawGroups);
       }
       const formatSettings = {
         indent: vsConfig.get<number>('format.indent'),

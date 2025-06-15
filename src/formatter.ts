@@ -248,8 +248,30 @@ function formatImportLine(importItem: ParsedImport): string {
 
 
 function formatImportsFromParser(sourceText: string, importRange: { start: number; end: number }, parserResult: ParserResult, config: Config): string {
-  if (importRange.start === importRange.end || !parserResult.groups.length) {
+  if (importRange.start === importRange.end) {
     return sourceText;
+  }
+
+  // Check if there are any imports left after filtering
+  const hasImports = parserResult.groups.some(group => group.imports.length > 0);
+  
+  if (!hasImports) {
+    logDebug('No imports remain after filtering, removing import section');
+    
+    // Get the content before and after the import section
+    const beforeImports = sourceText.substring(0, importRange.start);
+    let afterImports = sourceText.substring(importRange.end);
+    
+    // Clean up excessive newlines that might be left after removing imports
+    // Keep at most 2 newlines (one blank line) between sections
+    afterImports = afterImports.replace(/^\n{3,}/, '\n\n');
+    
+    // If the file starts with imports, ensure we don't have leading newlines
+    if (importRange.start === 0) {
+      afterImports = afterImports.replace(/^\n+/, '');
+    }
+    
+    return beforeImports + afterImports;
   }
 
   try {

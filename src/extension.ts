@@ -25,18 +25,17 @@ import type {
 }                                  from 'vscode';
 
 // Utils
-import { configManager }       from './utils/config';
-import { diagnosticsCache }    from './utils/diagnostics-cache';
+import { configManager }    from './utils/config';
+import { diagnosticsCache } from './utils/diagnostics-cache';
 import {
     logDebug,
     logError
-}                              from './utils/log';
+}                           from './utils/log';
 import {
     showMessage,
-    getUnusedImports,
-    getMissingAndUnusedImports
-}                              from './utils/misc';
-import { perfMonitor }         from './utils/performance';
+    analyzeImports
+}                           from './utils/misc';
+import { perfMonitor }      from './utils/performance';
 
 let parser: ImportParser | null = null;
 let lastConfigString = '';
@@ -85,11 +84,10 @@ class TidyJSFormattingProvider implements DocumentFormattingEditProvider {
       // Pre-filter imports if removal features are enabled
       let missingModules: Set<string> | undefined;
       let unusedImportsList: string[] | undefined;
-      
+
       if (configManager.getConfig().format?.removeUnusedImports || configManager.getConfig().format?.removeMissingModules) {
         try {
           const config = perfMonitor.measureSync('config_getConfig', () => configManager.getConfig());
-          const includeMissingModules = config.format?.removeMissingModules ?? false;
           
           const diagnostics = perfMonitor.measureSync(
             'get_diagnostics',
@@ -104,22 +102,59 @@ class TidyJSFormattingProvider implements DocumentFormattingEditProvider {
             { documentLength: documentText.length }
           );
 
-          if (config.format?.removeUnusedImports) {
-            unusedImportsList = perfMonitor.measureSync(
-              'get_unused_imports',
-              () => getUnusedImports(document.uri, initialParserResult, includeMissingModules, diagnostics),
-              { includeMissingModules }
-            );
-          }
+          // Single analysis call that gets everything we need
+          const analysis = perfMonitor.measureSync(
+            'analyze_imports',
+            () => analyzeImports(document.uri, initialParserResult, diagnostics),
+            { 
+              removeUnused: config.format?.removeUnusedImports,
+              removeMissing: config.format?.removeMissingModules 
+            }
+          );
 
-          if (includeMissingModules) {
-            const { missingModules: detectedMissing } = perfMonitor.measureSync(
-              'get_missing_modules',
-              () => getMissingAndUnusedImports(document.uri, initialParserResult, diagnostics),
-              { includeMissingModules }
-            );
-            missingModules = detectedMissing;
+          /*
+          * Logic for filtering:
+          * 
+          * 1. removeUnusedImports only: Remove ALL unused imports regardless of module status
+          * 2. removeMissingModules only: Remove entire import statements from missing modules
+          * 3. Both enabled: Remove ALL unused imports + entire imports from missing modules
+          * 
+          * The parser handles this in two ways:
+          * - missingModules: Skip entire import statements from these modules
+          * - unusedImportsList: Skip individual import specifiers
+          */
+
+          if (config.format?.removeUnusedImports) {
+            // Remove all unused imports (includes those from missing modules)
+            unusedImportsList = analysis.unusedImports;
           }
+          
+          if (config.format?.removeMissingModules) {
+            // Remove entire imports from missing modules
+            missingModules = analysis.missingModules;
+            
+            // If removeUnusedImports is NOT enabled, we still need to remove
+            // unused imports from missing modules to avoid keeping dead code
+            if (!config.format?.removeUnusedImports) {
+              unusedImportsList = Array.from(analysis.unusedFromMissing);
+            }
+          }
+          
+          logDebug('Pre-filtering results:', {
+            config: {
+              removeUnusedImports: config.format?.removeUnusedImports,
+              removeMissingModules: config.format?.removeMissingModules,
+            },
+            analysis: {
+              totalUnusedImports: analysis.unusedImports.length,
+              missingModules: Array.from(analysis.missingModules),
+              unusedFromMissing: Array.from(analysis.unusedFromMissing),
+            },
+            filtering: {
+              unusedImportsList: unusedImportsList || [],
+              missingModules: missingModules ? Array.from(missingModules) : [],
+            }
+          });
         } catch (error) {
           logError("Error pre-filtering imports:", error instanceof Error ? error.message : String(error));
         }

@@ -20,7 +20,7 @@
   "editor.codeActionsOnSave": {
     "source.addMissingImports": "always",
   },
-  "editor.formatOnSave": true,
+  "editor.formatOnSave": false,
   "[typescript]": {
     "editor.defaultFormatter": "Asmir.tidyjs"
   },

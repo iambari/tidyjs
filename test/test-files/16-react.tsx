@@ -1,7 +1,9 @@
-import React from 'react';                    // utilisé
-import { useState, useEffect } from 'react';  // useState utilisé, useEffect non utilisé
-import { union } from 'lodash';       // non utilisé
-import { UserProfile } from './missing-file'; // module manquant
+// Misc
+import { union } from 'lodash';
+import {
+    useState,
+    useEffect
+}                from 'react';
 
 export function MyComponent() {
   const [count, setCount] = useState(0);

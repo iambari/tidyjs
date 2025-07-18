@@ -171,6 +171,7 @@
   },
   "devDependencies": {
     "@babel/parser": "^7.26.10",
+    "@types/lodash": "^4.17.20",
     "@types/vscode": "^1.90.0",
     "@typescript-eslint/parser": "^8.25.0",
     "@typescript-eslint/types": "^8.32.1",
@@ -180,10 +181,9 @@
     "eslint": "^9.21.0",
     "glob": "^11.0.2",
     "jest": "^29.7.0",
+    "lodash": "^4.17.21",
     "ts-jest": "^29.2.6",
-    "typescript": "^5.8.2"
-  },
-  "dependencies": {
-    "lodash": "^4.17.21"
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.37.0"
   }
 }

@@ -2,8 +2,8 @@
   // TidyJS
   "editor.formatOnSave": true,
   "tidyjs.debug": true,
-  "tidyjs.format.removeUnusedImports": true,
-  // "tidyjs.format.removeMissingModules": true,
+  "tidyjs.format.removeUnusedImports": false,
+  "tidyjs.format.removeMissingModules": false,
   "tidyjs.excludedFolders": [
     "node_modules",
     "dist",

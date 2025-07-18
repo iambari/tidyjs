@@ -11,9 +11,7 @@ export function logDebug(message: string, ...args: unknown[]): void {
     return;
   }
 
-  const timestamp = new Date().toISOString();
-  let formattedMessage = `[${timestamp}] [DEBUG] ${message}`;
-
+  let formattedMessage = `[DEBUG] ${message}`;
   if (args.length > 0) {
     formattedMessage +=
       ' ' +
@@ -32,8 +30,7 @@ export function logDebug(message: string, ...args: unknown[]): void {
 }
 
 export function logError(message: string, ...args: unknown[]): void {
-  const timestamp = new Date().toISOString();
-  let formattedMessage = `[${timestamp}] [ERROR] ${message}`;
+  let formattedMessage = `[ERROR] ${message}`;
 
   if (args.length > 0) {
     formattedMessage +=

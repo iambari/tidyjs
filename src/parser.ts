@@ -780,35 +780,26 @@ export class ImportParser {
             return firstImportStart;
         }
 
+        // Don't include file header comments or documentation blocks
+        // Only include import-related comments (like // React imports)
         let startLineIndex = importLineIndex;
-        let inMultilineComment = false;
-
-        // Check if we're in the middle of a multiline comment at the import line
-        for (let i = 0; i < importLineIndex; i++) {
-            const line = lines[i];
-            if (line.includes('/*') && !line.includes('*/')) {
-                inMultilineComment = true;
-            } else if (line.includes('*/')) {
-                inMultilineComment = false;
-            }
-        }
-
-        // Walk backwards to include all comments and empty lines
+        
+        // Look backwards from the first import
         for (let i = importLineIndex - 1; i >= 0; i--) {
             const line = lines[i].trim();
-
-            if (line.includes('*/')) {
-                inMultilineComment = false;
+            
+            if (line === '') {
+                // Empty line - could be separation or just spacing
+                continue;
+            } else if (line.startsWith('//')) {
+                // Single-line comment - likely an import group comment
                 startLineIndex = i;
-            } else if (line.includes('/*')) {
-                inMultilineComment = true;
-                startLineIndex = i;
-            } else if (inMultilineComment) {
-                startLineIndex = i;
-            } else if (line === '' || line.startsWith('//')) {
-                startLineIndex = i;
+            } else if (line.includes('*/')) {
+                // End of a multiline comment
+                // Don't include multiline comments - they're usually file headers
+                break;
             } else {
-                // Stop if we hit non-comment, non-empty content
+                // Any other content - stop here
                 break;
             }
         }

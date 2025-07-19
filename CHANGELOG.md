@@ -42,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Non-intrusive debug logging** that no longer interrupts users with output panel pop-ups
 - **JSON parsing improvements** for TypeScript configs with comments and trailing commas
 
+#### Import Range Detection
+- **Fixed multiline comment handling** at the beginning of files - file header comments (copyright notices, documentation blocks) are now correctly excluded from the import section and preserved during formatting
+
 ## [1.4.2] - 2025-06-09
 
 ### ✨ Added

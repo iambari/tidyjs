@@ -34,6 +34,7 @@
     "editor.defaultFormatter": "Asmir.tidyjs"
   },
   // TidyJS
+  "tidyjs.debug": true,
   "tidyjs.groups": [
     {
       "name": "Misc",

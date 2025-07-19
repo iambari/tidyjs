@@ -80,7 +80,7 @@ describe('ConfigCache - RegExp Serialization Bug', () => {
       return loadCallCount === 1 ? baseConfig : modifiedConfig;
     };
 
-    const mockValidate = (config: Config) => {
+    const mockValidate = () => {
       validateCallCount++;
       return { isValid: true, errors: [] };
     };
@@ -153,7 +153,7 @@ describe('ConfigCache - RegExp Serialization Bug', () => {
       return loadCallCount === 1 ? baseConfig : modifiedConfig;
     };
 
-    const mockValidate = (config: Config) => {
+    const mockValidate = () => {
       validateCallCount++;
       return { isValid: true, errors: [] };
     };
@@ -202,7 +202,7 @@ describe('ConfigCache - RegExp Serialization Bug', () => {
       return config; // Always return same config
     };
 
-    const mockValidate = (config: Config) => {
+    const mockValidate = () => {
       validateCallCount++;
       return { isValid: true, errors: [] };
     };

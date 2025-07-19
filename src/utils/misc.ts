@@ -120,7 +120,7 @@ export function getMissingAndUnusedImports(
                         unusedVariables.add(match[1]);
                         logDebug(`Unused variable detected: ${match[1]}`);
                     }
-                } catch (error) {
+                } catch {
                     // Skip if we can't parse the message
                 }
             }

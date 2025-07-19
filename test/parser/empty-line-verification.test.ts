@@ -101,7 +101,6 @@ const App = () => {};`;
     // Should have groups separated but only one empty line before code
     const lines = formatted.text.split('\n');
     const lastImportIndex = lines.findIndex(line => line.includes('./config'));
-    const codeIndex = lines.findIndex(line => line.includes('const App'));
     
     expect(lines[lastImportIndex + 1]).toBe('');
     expect(lines[lastImportIndex + 2]).toContain('const App');

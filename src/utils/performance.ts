@@ -115,7 +115,7 @@ export class PerformanceMonitor {
         console.log('\n=== TidyJS Performance Summary ===');
         
         const entries = Object.entries(summary)
-            .filter(([_, stats]) => stats.avgDuration >= threshold)
+            .filter(([, stats]) => stats.avgDuration >= threshold)
             .sort((a, b) => b[1].totalDuration - a[1].totalDuration);
 
         for (const [operation, stats] of entries) {

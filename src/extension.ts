@@ -23,8 +23,8 @@ let lastConfigString = '';
 class TidyJSFormattingProvider implements DocumentFormattingEditProvider {
     async provideDocumentFormattingEdits(
         document: TextDocument,
-        options: FormattingOptions,
-        token: CancellationToken
+        _options: FormattingOptions,
+        _token: CancellationToken
     ): Promise<TextEdit[] | undefined> {
         try {
             // Vérifier si le document est dans un dossier exclu
@@ -266,77 +266,6 @@ class TidyJSFormattingProvider implements DocumentFormattingEditProvider {
 }
 
 /**
- * Commande de test pour déboguer la validation de configuration
- */
-async function testConfigurationValidation(): Promise<void> {
-    try {
-        const config = configManager.getConfig();
-        const validation = configManager.validateCurrentConfiguration();
-        const isValid = validation.isValid;
-        const errors = validation.errors;
-
-        const defaultGroups = config.groups.filter((group) => group.isDefault === true);
-
-        let detailMessage = '=== DEBUG CONFIGURATION VALIDATION ===\n\n';
-        detailMessage += `Configuration valid: ${isValid ? '✅' : '❌'}\n`;
-        detailMessage += `Validation errors: ${errors.length}\n\n`;
-
-        if (errors.length > 0) {
-            detailMessage += 'ERRORS:\n';
-            errors.forEach((error, index) => {
-                detailMessage += `  ${index + 1}. ${error}\n`;
-            });
-            detailMessage += '\n';
-        }
-
-        detailMessage += 'GROUPS ANALYSIS:\n';
-        detailMessage += `Total groups: ${config.groups.length}\n`;
-        detailMessage += `Groups marked as default: ${defaultGroups.length}\n\n`;
-
-        detailMessage += 'GROUPS DETAILS:\n';
-        config.groups.forEach((group, index) => {
-            detailMessage += `  ${index + 1}. "${group.name}"\n`;
-            detailMessage += `     - Order: ${group.order}\n`;
-            detailMessage += `     - isDefault: ${group.isDefault}\n`;
-            detailMessage += `     - Match: ${group.match ? group.match.source : 'undefined'}\n\n`;
-        });
-
-        if (defaultGroups.length > 1) {
-            detailMessage += '❌ PROBLEM DETECTED:\n';
-            detailMessage += 'Multiple groups marked as default:\n';
-            defaultGroups.forEach((group) => {
-                detailMessage += `  - "${group.name}" (order: ${group.order})\n`;
-            });
-            detailMessage += 'Only ONE group should have isDefault: true\n\n';
-        } else if (defaultGroups.length === 0) {
-            detailMessage += '❌ PROBLEM DETECTED:\n';
-            detailMessage += 'No group marked as default. At least one group must be the default.\n\n';
-        } else {
-            detailMessage += '✅ DEFAULT GROUP OK:\n';
-            detailMessage += `  - "${defaultGroups[0].name}" is correctly marked as default\n\n`;
-        }
-
-        const doc = await workspace.openTextDocument({
-            content: detailMessage,
-            language: 'plaintext',
-        });
-        await window.showTextDocument(doc);
-
-        if (defaultGroups.length > 1) {
-            const groupNames = defaultGroups.map((g) => `"${g.name}"`).join(', ');
-            showMessage.error(`❌ Configuration Invalid: Multiple default groups found: ${groupNames}`);
-        } else if (isValid) {
-            showMessage.info('✅ Configuration is valid!');
-        } else {
-            showMessage.error(`❌ Configuration is invalid: ${errors.join(', ')}`);
-        }
-    } catch (error) {
-        logError('Error in test configuration validation:', error);
-        showMessage.error(`Test failed: ${error}`);
-    }
-}
-
-/**
  * Check if the current document is in an excluded folder
  */
 function isDocumentInExcludedFolder(document: import('vscode').TextDocument): boolean {
@@ -457,7 +386,7 @@ export function activate(context: ExtensionContext): void {
             try {
                 const edits = await provider.provideDocumentFormattingEdits(
                     editor.document,
-                    { tabSize: 2, insertSpaces: true }, // Options par défaut
+                    { tabSize: 2, insertSpaces: true },
                     tokenSource.token
                 );
 

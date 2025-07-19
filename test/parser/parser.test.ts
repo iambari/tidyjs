@@ -1,4 +1,4 @@
-import { ImportParser, parseImports, ParsedImport, ImportGroup, ParserResult } from '../../src/parser';
+import { ImportParser, parseImports } from '../../src/parser';
 import { Config } from '../../src/types';
 import { containsSpecifier } from '../test-utils';
 

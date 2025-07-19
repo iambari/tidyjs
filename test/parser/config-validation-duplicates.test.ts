@@ -1,6 +1,6 @@
 import { configManager } from '../../src/utils/config';
 import { Config } from '../../src/types';
-import { difference, uniq } from 'lodash';
+import { difference } from 'lodash';
 
 describe('ConfigManager - Auto Order Resolution', () => {
 

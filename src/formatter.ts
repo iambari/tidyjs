@@ -23,7 +23,6 @@ function replaceImportLines(sourceText: string, importRange: { start: number; en
     let currentPos = 0;
 
     for (let i = 0; i < lines.length; i++) {
-        const lineStart = currentPos;
         const lineEnd = currentPos + lines[i].length;
 
         // Find the first line that contains or starts after importRange.start
@@ -253,7 +252,7 @@ function cleanUpLines(lines: string[]): string[] {
 }
 
 function formatImportLine(importItem: ParsedImport): string {
-    const { type, source, specifiers, defaultImport } = importItem;
+    const { type, source, specifiers } = importItem;
 
     if (type === ImportType.SIDE_EFFECT || specifiers.length === 0) {
         return `import '${source}';`;
@@ -301,8 +300,7 @@ function formatImportLine(importItem: ParsedImport): string {
 function formatImportsFromParser(
     sourceText: string,
     importRange: { start: number; end: number },
-    parserResult: ParserResult,
-    config: Config
+    parserResult: ParserResult
 ): string {
     if (importRange.start === importRange.end) {
         return sourceText;
@@ -467,7 +465,7 @@ async function formatImports(sourceText: string, config: Config, parserResult?: 
     }
 
     try {
-        const formattedText = formatImportsFromParser(sourceText, importRange, parserResult, config);
+        const formattedText = formatImportsFromParser(sourceText, importRange, parserResult);
 
         return { text: formattedText };
     } catch (error: unknown) {

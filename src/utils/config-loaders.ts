@@ -350,7 +350,7 @@ export class UnifiedConfigLoader {
                                 try {
                                     const config = JSON.parse(jsonContent);
                                     mappings = loader.extractAliases(configUri.fsPath, config);
-                                } catch (e) {
+                                } catch {
                                     // Give up, config is too malformed
                                     throw parseError;
                                 }

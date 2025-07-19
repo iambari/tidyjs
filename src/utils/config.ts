@@ -1,7 +1,7 @@
 import { Config } from '../types';
 import vscode from 'vscode';
 import { logDebug, logError } from './log';
-import { cloneDeepWith, difference, uniq } from 'lodash';
+import { cloneDeepWith, uniq } from 'lodash';
 import { ConfigCache } from './config-cache';
 
 const DEFAULT_CONFIG: Config = {

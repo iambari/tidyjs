@@ -1,6 +1,6 @@
 import { Config } from '../../src/types';
 import { ImportParser } from '../../src/parser';
-import { removeUnusedImports, getMissingAndUnusedImports } from '../../src/utils/misc';
+import { removeUnusedImports } from '../../src/utils/misc';
 
 const DEFAULT_CONFIG: Config = {
   debug: false,
@@ -415,7 +415,6 @@ export default Component;
       
       // Mock diagnostics that would be returned by VS Code for missing modules
       // Note: In a real test environment, these would come from VS Code's language service
-      const mockMissingModules = ['@library/form-new/models/ProviderModel', '@non-existent/package'];
       
       // Since we can't easily mock VS Code's diagnostic system in unit tests,
       // we'll test the logic that handles missing modules directly

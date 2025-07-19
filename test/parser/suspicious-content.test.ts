@@ -8,7 +8,6 @@ jest.mock('../../src/utils/log', () => ({
 }));
 
 // Import after mocking
-let containsSuspiciousContent: (text: string) => boolean;
 
 // We need to extract the function from the extension module
 // Since it's not exported, we'll test the patterns indirectly through the logic

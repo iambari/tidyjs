@@ -25,6 +25,12 @@ export interface Config {
     bracketSpacing?: boolean;
   };
 
+  pathResolution?: {
+    enabled?: boolean;
+    mode?: 'relative' | 'absolute';
+    preferredAliases?: string[];
+  };
+
   excludedFolders?: string[];
 }
 

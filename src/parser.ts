@@ -73,6 +73,7 @@ export interface ParsedImport {
     groupName: string | null;
     isPriority: boolean;
     sourceIndex: number;
+    originalSource?: ImportSource; // Keep track of original source for grouping
 }
 
 export interface ImportGroup {
@@ -446,7 +447,7 @@ export class ImportParser {
         return filteredImports;
     }
 
-    private determineGroup(source: string): { groupName: string | null; isPriority: boolean } {
+    public determineGroup(source: string): { groupName: string | null; isPriority: boolean } {
         // Use cached GroupMatcher for O(1) lookups after first match
         const groupName = this.groupMatcher.getGroup(source);
 
@@ -581,7 +582,7 @@ export class ImportParser {
         return consolidated;
     }
 
-    private organizeImportsIntoGroups(imports: ParsedImport[]): ImportGroup[] {
+    public organizeImportsIntoGroups(imports: ParsedImport[]): ImportGroup[] {
         // First consolidate imports from the same source
         const consolidatedImports = this.consolidateImportsBySource(imports);
 

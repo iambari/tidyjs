@@ -115,10 +115,8 @@ export const test = 'test';`;
 
         // TidyJS commands won't be available, but we can test the API
         const hasFormatCommand = allCommands.includes('extension.format');
-        const hasValidationCommand = allCommands.includes('tidyjs.testValidation');
         
         console.log('Has extension.format command:', hasFormatCommand);
-        console.log('Has tidyjs.testValidation command:', hasValidationCommand);
         console.log('Total commands available:', allCommands.length);
         
         // In a real extension environment, these would be true

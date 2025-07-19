@@ -32,11 +32,6 @@
         "command": "extension.format",
         "title": "Format Imports",
         "category": "TidyJS"
-      },
-      {
-        "command": "tidyjs.testValidation",
-        "title": "Configuration validation",
-        "category": "TidyJS"
       }
     ],
     "keybindings": [
@@ -136,6 +131,26 @@
             "type": "string",
             "description": "Folder path relative to workspace root (e.g., 'node_modules', 'dist', 'build')"
           }
+        },
+        "tidyjs.pathResolution.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic path resolution for imports"
+        },
+        "tidyjs.pathResolution.mode": {
+          "type": "string",
+          "enum": ["relative", "absolute"],
+          "default": "relative",
+          "description": "Convert imports to relative or absolute (with aliases) paths"
+        },
+        "tidyjs.pathResolution.preferredAliases": {
+          "type": "array",
+          "default": [],
+          "description": "Preferred aliases to use when converting to absolute paths",
+          "items": {
+            "type": "string",
+            "description": "Alias pattern (e.g., '@components', '@utils', '@/*')"
+          }
         }
       }
     }
@@ -173,6 +188,7 @@
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
     "@types/mocha": "^10.0.10",
+    "@types/node": "^24.0.15",
     "@types/vscode": "^1.90.0",
     "@typescript-eslint/parser": "^8.25.0",
     "@typescript-eslint/types": "^8.32.1",

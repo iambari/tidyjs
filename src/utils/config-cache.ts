@@ -3,7 +3,6 @@
  */
 
 import { Config } from '../types';
-import vscode from 'vscode';
 import { cloneDeepWith } from 'lodash';
 
 export class ConfigCache {

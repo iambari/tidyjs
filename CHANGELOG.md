@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-01-19
+
+### ✨ Added
+
+#### Automatic Path Resolution
+- **New path resolution feature** to automatically convert between relative and absolute (aliased) imports
+- **Support for multiple build tools**: TypeScript (`tsconfig.json`), Vite (`vite.config.js/ts`), and Webpack (`webpack.config.js/ts`)
+- **Bidirectional conversion modes**:
+  - `mode: "relative"` - Converts absolute/aliased imports to relative paths
+  - `mode: "absolute"` - Converts relative imports to absolute paths with aliases
+- **Smart alias detection** that automatically finds and uses path mappings from your build configuration
+- **Configuration options**:
+  - `tidyjs.pathResolution.enabled` - Enable/disable the feature (default: false)
+  - `tidyjs.pathResolution.mode` - Choose conversion mode (default: "relative")
+  - `tidyjs.pathResolution.preferredAliases` - Control which aliases to use when multiple options exist. For example, if your config has `@/*`, `@app/*`, and `@shared/*` all pointing to the same file, you can specify `["@shared", "@app", "@"]` to prefer the most specific alias. The first matching alias in the array will be used
+
+#### Enhanced Vite Support
+- **Improved Vite config parser** that detects aliases even when imported from external files
+- **Support for complex Vite configurations** with spread operators and dynamic imports
+- **Fallback detection** for common monorepo patterns (@app, @core, @library)
+
+### 🔧 Changed
+
+#### Auto-Order Resolution System
+- **Intelligent group order management** that automatically resolves order conflicts
+- **Auto-assignment of missing orders** for groups without explicit order values
+- **Collision resolution** that preserves original preferences while avoiding duplicates
+- **Improved configuration validation** with detailed warnings for order issues
+
+### 🔒 Fixed
+
+#### Configuration and Cache Improvements
+- **Fixed RegExp serialization** in cache system that was causing cache invalidation issues
+- **Fixed duplicate group validation** using proper array comparison with lodash
+- **Non-intrusive debug logging** that no longer interrupts users with output panel pop-ups
+- **JSON parsing improvements** for TypeScript configs with comments and trailing commas
+
 ## [1.4.2] - 2025-06-09
 
 ### ✨ Added
@@ -98,7 +135,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   **Unused Imports Detection**: New `removeUnusedImports` configuration option to automatically remove unused imports (#680c3c1)
 -   **Missing Modules Detection**: New `removeMissingModules` configuration option to remove imports from non-existent modules (#680c3c1)
 -   **Excluded Folders**: Added `excludedFolders` configuration to skip formatting in specific directories (#51fdd17)
--   **Configuration Validation Command**: New `tidyjs.testValidation` command for debugging configuration issues
 -   **Context Menu Integration**: Added "Format Imports" to the editor context menu for TypeScript/JavaScript files
 -   **CLAUDE.md**: Added AI assistant guidance file for better development experience
 -   **Comprehensive Test Suite**: New test structure in `test/parser/` with specialized test categories

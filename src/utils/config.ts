@@ -26,6 +26,11 @@ const DEFAULT_CONFIG: Config = {
     singleQuote: true,
     bracketSpacing: true,
   },
+  pathResolution: {
+    enabled: false,
+    mode: 'relative',
+    preferredAliases: [],
+  },
   excludedFolders: [],
 };
 
@@ -443,6 +448,25 @@ class ConfigManager {
       if (excludedFolders !== undefined) {
         config.excludedFolders = [...excludedFolders];
       }
+      
+      // Path resolution settings
+      const pathResolutionEnabled = vsConfig.get<boolean>('pathResolution.enabled');
+      const pathResolutionMode = vsConfig.get<'relative' | 'absolute'>('pathResolution.mode');
+      const pathResolutionAliases = vsConfig.get<string[]>('pathResolution.preferredAliases');
+      
+      if (pathResolutionEnabled !== undefined) {
+        config.pathResolution = config.pathResolution || {};
+        config.pathResolution.enabled = pathResolutionEnabled;
+      }
+      if (pathResolutionMode !== undefined) {
+        config.pathResolution = config.pathResolution || {};
+        config.pathResolution.mode = pathResolutionMode;
+      }
+      if (pathResolutionAliases !== undefined) {
+        config.pathResolution = config.pathResolution || {};
+        config.pathResolution.preferredAliases = [...pathResolutionAliases];
+      }
+      
       return config;
 
     } catch (error) {

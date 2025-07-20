@@ -93,6 +93,7 @@ import type { FC } from 'react';
 
 ## Installation
 
+### Stable Version
 1. Open VS Code
 2. Go to Extensions (Ctrl+Shift+X / Cmd+Shift+X)
 3. Search for "TidyJS"

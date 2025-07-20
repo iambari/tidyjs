@@ -139,7 +139,10 @@
         },
         "tidyjs.pathResolution.mode": {
           "type": "string",
-          "enum": ["relative", "absolute"],
+          "enum": [
+            "relative",
+            "absolute"
+          ],
           "default": "relative",
           "description": "Convert imports to relative or absolute (with aliases) paths"
         },

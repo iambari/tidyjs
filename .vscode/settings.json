@@ -9,7 +9,8 @@
     "**/node_modules": true
   },
   "search.exclude": {
-    "**/dist/**": true
+      "out": true, // set this to false to include "out" folder in search results
+      "dist": true // set this to false to include "dist" folder in search results
   },
   "typescript.tsc.autoDetect": "off",
   "eslint.enable": true,

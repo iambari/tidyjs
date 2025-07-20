@@ -458,10 +458,6 @@ function formatImportError(invalidImport: InvalidImport): string {
 /**
  * Called when the extension is deactivated
  */
-/**
- * Enhance parser result by resolving relative paths to absolute ones
- * This ensures correct group assignment for relative imports
- */
 async function enhanceParserResultWithResolvedPaths(
     originalResult: ParserResult,
     pathResolver: PathResolver,

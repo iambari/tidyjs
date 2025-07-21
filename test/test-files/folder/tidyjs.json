@@ -27,7 +27,6 @@
         }
     ],
     "format": {
-        "indent": 2,
         "singleQuote": true,
         "removeUnusedImports": false
     }

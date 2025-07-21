@@ -15,9 +15,9 @@ import type { FC }     from 'react';
 import '@/components/Button';
 
 // Relative
-import './styles.css';
 import { localFunction } from './local';
 import { helper }        from './utils';
+import './styles.css';
 
 // This file uses the config from folder/tidyjs.json
 // Expected order after formatting:

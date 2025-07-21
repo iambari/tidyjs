@@ -28,8 +28,6 @@
         }
     ],
     "format": {
-        "indent": 12,
-        "singleQuote": true,
         "removeUnusedImports": false,
         "removeMissingModules": false,
         "bracketSpacing": true

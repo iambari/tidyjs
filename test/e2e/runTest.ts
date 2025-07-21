@@ -18,7 +18,7 @@ async function main(): Promise<void> {
             extensionTestsPath,
             launchArgs: [
                 testWorkspace, // Open test workspace
-                '--disable-extensions', // Disable all other extensions
+                // Note: Removed --disable-extensions to allow our extension to load
                 '--disable-gpu' // Disable GPU acceleration for CI environments
             ]
         });

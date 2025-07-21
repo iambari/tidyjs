@@ -9,10 +9,10 @@ NC='\033[0m' # No Color
 
 # Fonction pour afficher le header
 show_header() {
-  echo -e "${BLUE}╔════════════════════════════════════════════╗${NC}"
-  echo -e "${BLUE}║        TidyJS Version Management           ║${NC}"
-  echo -e "${BLUE}╚════════════════════════════════════════════╝${NC}"
-  echo ""
+  printf "${BLUE}╔════════════════════════════════════════════╗${NC}\n"
+  printf "${BLUE}║        TidyJS Version Management           ║${NC}\n"
+  printf "${BLUE}╚════════════════════════════════════════════╝${NC}\n"
+  printf "\n"
 }
 
 # Récupérer la version actuelle
@@ -31,24 +31,24 @@ else
   # Mode interactif
   show_header
   
-  echo -e "${YELLOW}Version actuelle: ${GREEN}$CURRENT_VERSION${NC}"
-  echo ""
-  echo "Choisissez le type de version à incrémenter :"
-  echo ""
-  echo -e "${BLUE}1) Patch${NC} ($MAJOR.$MINOR.$PATCH → $MAJOR.$MINOR.$((PATCH + 1)))"
-  echo "   └─ Corrections de bugs, petites améliorations"
-  echo "   └─ Exemple: Fix import parsing pour les imports mixtes"
-  echo ""
-  echo -e "${BLUE}2) Minor${NC} ($MAJOR.$MINOR.$PATCH → $MAJOR.$((MINOR + 1)).0)"
-  echo "   └─ Nouvelles fonctionnalités, améliorations importantes"
-  echo "   └─ Exemple: Ajout du support pour les imports dynamiques"
-  echo ""
-  echo -e "${BLUE}3) Major${NC} ($MAJOR.$MINOR.$PATCH → $((MAJOR + 1)).0.0)"
-  echo "   └─ Changements majeurs, breaking changes"
-  echo "   └─ Exemple: Refonte complète de l'API de configuration"
-  echo ""
-  echo -e "${BLUE}4) Annuler${NC}"
-  echo ""
+  printf "${YELLOW}Version actuelle: ${GREEN}$CURRENT_VERSION${NC}\n"
+  printf "\n"
+  printf "Choisissez le type de version à incrémenter :\n"
+  printf "\n"
+  printf "${BLUE}1) Patch${NC} ($MAJOR.$MINOR.$PATCH → $MAJOR.$MINOR.$((PATCH + 1)))\n"
+  printf "   └─ Corrections de bugs, petites améliorations\n"
+  printf "   └─ Exemple: Fix import parsing pour les imports mixtes\n"
+  printf "\n"
+  printf "${BLUE}2) Minor${NC} ($MAJOR.$MINOR.$PATCH → $MAJOR.$((MINOR + 1)).0)\n"
+  printf "   └─ Nouvelles fonctionnalités, améliorations importantes\n"
+  printf "   └─ Exemple: Ajout du support pour les imports dynamiques\n"
+  printf "\n"
+  printf "${BLUE}3) Major${NC} ($MAJOR.$MINOR.$PATCH → $((MAJOR + 1)).0.0)\n"
+  printf "   └─ Changements majeurs, breaking changes\n"
+  printf "   └─ Exemple: Refonte complète de l'API de configuration\n"
+  printf "\n"
+  printf "${BLUE}4) Annuler${NC}\n"
+  printf "\n"
   
   read -p "Votre choix (1-4): " choice
   
@@ -57,11 +57,11 @@ else
     2) VERSION_TYPE="minor" ;;
     3) VERSION_TYPE="major" ;;
     4) 
-      echo -e "${YELLOW}Opération annulée${NC}"
+      printf "${YELLOW}Opération annulée${NC}\n"
       exit 0
       ;;
     *)
-      echo -e "${YELLOW}Choix invalide. Opération annulée.${NC}"
+      printf "${YELLOW}Choix invalide. Opération annulée.${NC}\n"
       exit 1
       ;;
   esac
@@ -88,8 +88,8 @@ esac
 
 NEW_VERSION="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
 
-echo ""
-echo -e "${GREEN}► Mise à jour de la version: $CURRENT_VERSION → $NEW_VERSION${NC}"
+printf "\n"
+printf "${GREEN}► Mise à jour de la version: $CURRENT_VERSION → $NEW_VERSION${NC}\n"
 
 # Mettre à jour package.json
 if command -v jq &> /dev/null; then
@@ -100,49 +100,49 @@ else
   rm -f package.json.bak
 fi
 
-echo -e "${GREEN}✓ Version mise à jour dans package.json${NC}"
+printf "${GREEN}✓ Version mise à jour dans package.json${NC}\n"
 
 # Demander si on veut aussi créer le commit et tag
-echo ""
+printf "\n"
 read -p "Voulez-vous créer un commit et un tag Git ? (o/n) " -n 1 -r
-echo ""
+printf "\n"
 
 if [[ $REPLY =~ ^[Oo]$ ]]; then
   # Supprimer les anciens .vsix
-  echo -e "${BLUE}► Nettoyage des anciens fichiers .vsix...${NC}"
+  printf "${BLUE}► Nettoyage des anciens fichiers .vsix...${NC}\n"
   rm -f *.vsix
   
   # Build le package
-  echo -e "${BLUE}► Build du package...${NC}"
+  printf "${BLUE}► Build du package...${NC}\n"
   npm run build
   
   # Créer le commit
   git add package.json *.vsix
   git commit -m "chore: bump version to $NEW_VERSION"
-  echo -e "${GREEN}✓ Commit créé${NC}"
+  printf "${GREEN}✓ Commit créé${NC}\n"
   
   # Créer le tag
   git tag "v$NEW_VERSION"
-  echo -e "${GREEN}✓ Tag v$NEW_VERSION créé${NC}"
+  printf "${GREEN}✓ Tag v$NEW_VERSION créé${NC}\n"
   
   # Demander pour push
-  echo ""
+  printf "\n"
   read -p "Voulez-vous pousser les changements sur GitHub ? (o/n) " -n 1 -r
-  echo ""
+  printf "\n"
   
   if [[ $REPLY =~ ^[Oo]$ ]]; then
     git push origin main
     git push origin "v$NEW_VERSION"
-    echo -e "${GREEN}✓ Changements poussés sur GitHub${NC}"
-    echo -e "${BLUE}► GitHub Actions va maintenant créer une release automatiquement${NC}"
+    printf "${GREEN}✓ Changements poussés sur GitHub${NC}\n"
+    printf "${BLUE}► GitHub Actions va maintenant créer une release automatiquement${NC}\n"
   else
-    echo -e "${YELLOW}► Changements gardés localement${NC}"
-    echo "  Pour pousser plus tard: git push origin main && git push origin v$NEW_VERSION"
+    printf "${YELLOW}► Changements gardés localement${NC}\n"
+    printf "  Pour pousser plus tard: git push origin main && git push origin v$NEW_VERSION\n"
   fi
 else
-  echo -e "${GREEN}✓ Version mise à jour (sans commit)${NC}"
-  echo "  Pour créer un commit manuellement: git add package.json && git commit -m \"chore: bump version to $NEW_VERSION\""
+  printf "${GREEN}✓ Version mise à jour (sans commit)${NC}\n"
+  printf "  Pour créer un commit manuellement: git add package.json && git commit -m \"chore: bump version to $NEW_VERSION\"\n"
 fi
 
-echo ""
-echo -e "${GREEN}✨ Terminé !${NC}"
+printf "\n"
+printf "${GREEN}✨ Terminé !${NC}\n"

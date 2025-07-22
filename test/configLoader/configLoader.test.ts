@@ -39,6 +39,25 @@ describe('ConfigLoader', () => {
             fs.unlinkSync(configPath);
         });
 
+        it('should prefer .tidyjsrc over tidyjs.json in same directory', async () => {
+            const tidyjsrcPath = path.join(testDir, '.tidyjsrc');
+            const tidyjsPath = path.join(testDir, 'tidyjs.json');
+            const testFilePath = path.join(testDir, 'test.ts');
+            
+            // Create both config files
+            fs.writeFileSync(tidyjsrcPath, JSON.stringify({ format: { indent: 2 } }));
+            fs.writeFileSync(tidyjsPath, JSON.stringify({ format: { indent: 4 } }));
+            
+            const mockUri = { fsPath: testFilePath } as vscode.Uri;
+            const result = await ConfigLoader.findNearestConfigFile(mockUri);
+            
+            expect(result).toBe(tidyjsrcPath);
+            
+            // Clean up
+            fs.unlinkSync(tidyjsrcPath);
+            fs.unlinkSync(tidyjsPath);
+        });
+
         it('should find config file in parent directory', async () => {
             const configPath = path.join(testDir, 'tidyjs.json');
             const testFilePath = path.join(testDir, 'subfolder', 'test.ts');

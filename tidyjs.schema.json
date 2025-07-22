@@ -4,10 +4,6 @@
   "description": "Configuration file for TidyJS import organization",
   "type": "object",
   "properties": {
-    "$schema": {
-      "type": "string",
-      "description": "Path to the JSON schema file"
-    },
     "extends": {
       "type": "string",
       "description": "Path to another configuration file to extend from"

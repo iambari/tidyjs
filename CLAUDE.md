@@ -280,19 +280,25 @@ Final order assignment:
 TidyJS supports hierarchical configuration through:
 
 1. **VS Code Settings** (`settings.json`): Configure via VS Code's `tidyjs.*` settings
-2. **Project Config Files** (`tidyjs.json`): Place a `tidyjs.json` file in any directory
+2. **Project Config Files**: Place a `.tidyjsrc` or `tidyjs.json` file in any directory
 
 ### Configuration Priority (highest to lowest)
-1. `tidyjs.json` in the same directory as the file
-2. `tidyjs.json` in parent directories (closest first)
+1. `.tidyjsrc` or `tidyjs.json` in the same directory as the file (`.tidyjsrc` takes precedence)
+2. `.tidyjsrc` or `tidyjs.json` in parent directories (closest first, `.tidyjsrc` takes precedence)
 3. VS Code workspace folder settings
 4. VS Code global settings
 5. Default configuration
 
-### Example `tidyjs.json` file
+### Supported Configuration Files
+
+TidyJS supports two configuration file formats:
+
+1. **`.tidyjsrc`** (recommended) - JSON file with schema validation
+2. **`tidyjs.json`** - Traditional JSON configuration file
+
+### Example `.tidyjsrc` file
 ```json
 {
-  "$schema": "./tidyjs.schema.json",
   "groups": [
     { "name": "React", "match": "^react", "order": 1 },
     { "name": "External", "match": "^[^@.]", "order": 2 },

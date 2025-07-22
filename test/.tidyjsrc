@@ -1,0 +1,10 @@
+{
+  "groups": [
+    { "name": "React", "match": "^react", "order": 1 },
+    { "name": "External", "match": "^[^@.]", "order": 2 }
+  ],
+  "format": {
+    "indent": 2,
+    "singleQuote": true
+  }
+}

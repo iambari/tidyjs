@@ -62,5 +62,13 @@
       "match": "^(?!@typescript).*types.*$",
       "order": 4
     }
+  ],
+  "json.schemas": [
+    {
+      "fileMatch": [
+        ".tidyjsrc"
+      ],
+      "url": "./tidyjs.schema.json"
+    }
   ]
 }

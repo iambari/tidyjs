@@ -5,7 +5,7 @@ import { Config, TidyJSConfigFile, ImportGroupFile, ConfigSource } from '../type
 import { logDebug as debugLog } from './log';
 import { configManager } from './config';
 
-const CONFIG_FILE_NAMES = ['tidyjs.json'];
+const CONFIG_FILE_NAMES = ['.tidyjsrc', 'tidyjs.json'];
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class ConfigLoader {

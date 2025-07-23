@@ -14,7 +14,7 @@ import {
     DiagnosticSeverity
 }                      from 'vscode';
 
-const UNUSED_IMPORT_CODES = ['unused-import', 'import-not-used', '6192', '6133'];
+const UNUSED_IMPORT_CODES = ['unused-import', 'import-not-used', '6192', '6133', '6196'];
 const MODULE_NOT_FOUND_CODES = ['2307', '2318']; // Cannot find module
 
 /**
@@ -115,7 +115,7 @@ export function getMissingAndUnusedImports(
                 try {
                     // Extract variable name from message instead of range
                     // because the range might cover the entire import line
-                    const match = diagnostic.message.match(/'([^']+)' is declared but its value is never read/);
+                    const match = diagnostic.message.match(/'([^']+)' is declared but (?:its value is )?never (?:read|used)\.?/);
                     if (match && match[1]) {
                         unusedVariables.add(match[1]);
                         logDebug(`Unused variable detected: ${match[1]}`);
@@ -223,7 +223,7 @@ export function getUnusedImports(
         for (const diagnostic of unusedDiagnostics) {
             try {
                 // Try to extract the variable name from the diagnostic message
-                const match = diagnostic.message.match(/'([^']+)' is declared but its value is never read/);
+                const match = diagnostic.message.match(/'([^']+)' is declared but (?:its value is )?never (?:read|used)\.?/);
                 if (match && match[1]) {
                     const unusedName = match[1];
                     // Check if this name is in our imported names
@@ -441,7 +441,7 @@ export function analyzeImports(
                 (diagnostic.severity === DiagnosticSeverity.Warning || diagnostic.severity === DiagnosticSeverity.Hint) &&
                 UNUSED_IMPORT_CODES.includes(String(diagnostic.code))
             ) {
-                const match = diagnostic.message.match(/'([^']+)' is declared but its value is never read/);
+                const match = diagnostic.message.match(/'([^']+)' is declared but (?:its value is )?never (?:read|used)\.?/);
                 if (match && match[1]) {
                     unusedVariables.add(match[1]);
                     logDebug(`Unused variable detected: ${match[1]}`);

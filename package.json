@@ -29,14 +29,19 @@
   "contributes": {
     "commands": [
       {
-        "command": "extension.format",
+        "command": "tidyjs.forceFormatDocument",
         "title": "Format Imports",
+        "category": "TidyJS"
+      },
+      {
+        "command": "tidyjs.createConfigFile",
+        "title": "Create Configuration File",
         "category": "TidyJS"
       }
     ],
     "keybindings": [
       {
-        "command": "extension.format",
+        "command": "tidyjs.forceFormatDocument",
         "key": "ctrl+alt+i",
         "mac": "cmd+alt+i",
         "when": "editorTextFocus"
@@ -160,6 +165,10 @@
     "jsonValidation": [
       {
         "fileMatch": "tidyjs.json",
+        "url": "./tidyjs.schema.json"
+      },
+      {
+        "fileMatch": ".tidyjsrc",
         "url": "./tidyjs.schema.json"
       }
     ]

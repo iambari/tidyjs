@@ -14,6 +14,10 @@ import { showMessage, analyzeImports } from './utils/misc';
 import { perfMonitor } from './utils/performance';
 import { PathResolver } from './utils/path-resolver';
 
+// Node
+import { writeFileSync } from 'fs';
+import { join } from 'path';
+
 let parser: ImportParser | null = null;
 let lastConfigString = '';
 
@@ -393,7 +397,7 @@ export function activate(context: ExtensionContext): void {
 
         const formattingProvider = languages.registerDocumentFormattingEditProvider(documentSelector, new TidyJSFormattingProvider());
 
-        const formatCommand = commands.registerCommand('extension.format', async () => {
+        const formatCommand = commands.registerCommand('tidyjs.forceFormatDocument', async () => {
             const editor = window.activeTextEditor;
             if (!editor) {
                 showMessage.warning('No active editor found');
@@ -430,6 +434,46 @@ export function activate(context: ExtensionContext): void {
             }
         });
 
+        const createConfigCommand = commands.registerCommand('tidyjs.createConfigFile', async () => {
+            try {
+                // Show folder picker dialog
+                const folderUri = await window.showOpenDialog({
+                    canSelectFolders: true,
+                    canSelectFiles: false,
+                    canSelectMany: false,
+                    openLabel: 'Select Folder',
+                    title: 'Where do you want to create the .tidyjsrc file?'
+                });
+
+                if (!folderUri || folderUri.length === 0) {
+                    return; // User cancelled
+                }
+
+                const selectedFolder = folderUri[0];
+                const configPath = join(selectedFolder.fsPath, '.tidyjsrc');
+
+                // Create minimal configuration
+                const minimalConfig = {
+                    format: {
+                        indent: 4,
+                        bracketSpacing: true
+                    }
+                };
+
+                // Write the configuration file
+                writeFileSync(configPath, JSON.stringify(minimalConfig, null, 2));
+
+                // Open the created file
+                const document = await workspace.openTextDocument(configPath);
+                await window.showTextDocument(document);
+
+                logDebug(`Created .tidyjsrc file at: ${configPath}`);
+            } catch (error) {
+                logError('Error creating config file:', error);
+                showMessage.error(`Failed to create config file: ${error}`);
+            }
+        });
+
         // Listen for configuration changes to invalidate parser cache
         const configChangeDisposable = workspace.onDidChangeConfiguration((e) => {
             if (e.affectsConfiguration('tidyjs')) {
@@ -441,7 +485,7 @@ export function activate(context: ExtensionContext): void {
             }
         });
         
-        context.subscriptions.push(formatCommand, formattingProvider, configChangeDisposable);
+        context.subscriptions.push(formatCommand, createConfigCommand, formattingProvider, configChangeDisposable);
 
         logDebug('Extension activated successfully with config:', configManager.getConfig());
 

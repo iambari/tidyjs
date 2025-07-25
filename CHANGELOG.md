@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.6] - 2025-01-25
+
+### ✨ Added
+
+#### New Create Configuration Command
+- **New command `tidyjs.createConfigFile`** to easily create a `.tidyjsrc` configuration file
+- **Interactive folder picker** that lets users choose where to save the configuration
+- **Auto-generated minimal config** with sensible defaults (indent: 4, bracketSpacing: true)
+- **Automatic file opening** after creation for immediate editing
+
+#### Enhanced JSON Schema Support
+- **Schema validation for `.tidyjsrc` files** - previously only `tidyjs.json` had schema support
+- **IntelliSense and validation** for both `.tidyjsrc` and `tidyjs.json` configuration files
+
+### 🔧 Changed
+
+#### Command Improvements
+- **Renamed command ID** from `extension.format` to `tidyjs.forceFormatDocument` for better clarity
+- **Removed default keybinding** - users can now set their own preferred keyboard shortcut through VS Code's keybinding settings
+
+## [1.5.5] - 2025-01-24
+
+### 🐛 Fixed
+
+#### ESLint Diagnostics Parsing for Unused Imports
+- **Fixed unused import detection** that was failing for multiline imports ([#1](https://github.com/asmirbe/tidyjs/issues/1))
+- **Added diagnostic code helper** to handle different ESLint code formats (numeric and string)
+- **Updated regex pattern** to match both "declared" and "defined" unused variable messages
+- **Extended severity checks** to include Error severity in addition to Warning
+- **Fixed duplicate detection** in default import name extraction
+
 ## [1.5.0] - 2025-01-19
 
 ### ✨ Added

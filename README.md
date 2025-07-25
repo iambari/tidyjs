@@ -110,9 +110,18 @@ After installation, TidyJS works immediately with sensible defaults. For custom 
 
 ### Methods to Format Imports
 
-1. **Command Palette**: `Ctrl+Shift+P` → "Format Imports"
+1. **Command Palette**: `Ctrl+Shift+P` → "TidyJS: Format Imports"
 2. **Format on Save**: Enable `editor.formatOnSave` in VS Code settings
 3. **Right-click Context Menu**: Available in supported file types
+4. **Custom Keyboard Shortcut**: Set your own keybinding (see Commands section below)
+
+### Create Configuration File
+
+**New in v1.5.6**: Easily create a `.tidyjsrc` configuration file:
+
+1. **Command Palette**: `Ctrl+Shift+P` → "TidyJS: Create Configuration File"
+2. **Choose Location**: Select where to save the configuration file
+3. **Auto-Generated**: Creates a minimal config with sensible defaults
 
 ### Supported File Types
 - **TypeScript**: `.ts`, `.tsx`
@@ -331,6 +340,10 @@ Control the order of different import types within each group:
 ### `.tidyjsrc` (Recommended)
 
 Create a `.tidyjsrc` file in your project root:
+
+**Quick Setup**: Use the command palette (`Ctrl+Shift+P`) → "TidyJS: Create Configuration File" to automatically generate a `.tidyjsrc` file.
+
+**Manual Setup**:
 
 ```json
 {
@@ -581,16 +594,23 @@ Enable comprehensive logging for troubleshooting:
 
 | Command | Description |
 |---------|-------------|
-| `TidyJS: Format Imports` | Format imports in active file |
+| `tidyjs.forceFormatDocument` | Format imports in active file |
+| `tidyjs.createConfigFile` | Create a new `.tidyjsrc` configuration file |
 
-### Custom Keybindings
+### Setting Up Keybindings
 
-Add custom keybindings in VS Code settings:
+To add a keyboard shortcut for formatting imports:
+
+1. Open VS Code Keyboard Shortcuts (`Ctrl+K Ctrl+S` / `Cmd+K Cmd+S`)
+2. Search for "TidyJS: Format Imports"
+3. Click the + icon to add your preferred keybinding
+
+Or add directly to your keybindings.json:
 
 ```json
 {
-  "key": "ctrl+shift+o",
-  "command": "extension.format",
+  "key": "cmd+alt+i",  // or your preferred shortcut
+  "command": "tidyjs.forceFormatDocument",
   "when": "editorTextFocus"
 }
 ```

@@ -39,14 +39,6 @@
         "category": "TidyJS"
       }
     ],
-    "keybindings": [
-      {
-        "command": "tidyjs.forceFormatDocument",
-        "key": "ctrl+alt+i",
-        "mac": "cmd+alt+i",
-        "when": "editorTextFocus"
-      }
-    ],
     "configuration": {
       "title": "TidyJS",
       "properties": {

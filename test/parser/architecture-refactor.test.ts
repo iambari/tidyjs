@@ -13,12 +13,12 @@ const mockConfig: Config = {
             name: 'React',
             match: /^react$/,
             order: 1,
-            isDefault: false,
+            default: false,
         },
         {
             name: 'Other',
             order: 999,
-            isDefault: true,
+            default: true,
         },
     ],
     format: {

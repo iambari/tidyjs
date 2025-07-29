@@ -7,7 +7,7 @@ describe('ImportParser - Error Recovery and Invalid Imports', () => {
       {
         name: 'Default',
         order: 1,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {

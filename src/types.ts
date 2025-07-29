@@ -4,7 +4,7 @@ export interface Config {
   groups: {
     name: string;
     order: number;
-    isDefault?: boolean;
+    default?: boolean;
     match?: RegExp;
     priority?: number;
     sortOrder?: 'alphabetic' | string[];
@@ -37,6 +37,8 @@ export interface Config {
 export interface ImportGroupFile {
   name: string;
   order?: number;
+  default?: boolean;
+  // @deprecated Use 'default' instead
   isDefault?: boolean;
   match?: string;
   priority?: number;

@@ -23,7 +23,9 @@
         {
             "name": "Others",
             "order": 5,
-            "isDefault": true
+            "priority": 10,
+            "match": "^lodash$",
+            "default": true
         }
     ],
     "format": {

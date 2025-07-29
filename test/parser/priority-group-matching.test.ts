@@ -11,26 +11,26 @@ describe('GroupMatcher Priority System', () => {
                 match: /.*/, // Matches everything
                 order: 1,
                 priority: 0, // Low priority
-                isDefault: false
+                default: false
             },
             {
                 name: 'React',
                 match: /^react/, // Matches react imports
                 order: 2,
                 priority: 10, // High priority
-                isDefault: false
+                default: false
             },
             {
                 name: 'External',
                 match: /^[^@./]/, // Matches external packages
                 order: 3,
                 priority: 5, // Medium priority
-                isDefault: false
+                default: false
             },
             {
                 name: 'Default',
                 order: 999,
-                isDefault: true
+                default: true
             }
         ];
     });
@@ -52,19 +52,19 @@ describe('GroupMatcher Priority System', () => {
                 match: /^react/,
                 order: 5,
                 priority: 10,
-                isDefault: false
+                default: false
             },
             {
                 name: 'Group2', 
                 match: /^react/,
                 order: 3,
                 priority: 10, // Same priority as Group1
-                isDefault: false
+                default: false
             },
             {
                 name: 'Default',
                 order: 999,
-                isDefault: true
+                default: true
             }
         ];
 
@@ -83,19 +83,19 @@ describe('GroupMatcher Priority System', () => {
                 match: /^react/,
                 order: 1,
                 priority: 10,
-                isDefault: false
+                default: false
             },
             {
                 name: 'External',
                 match: /^[a-z][^@]/,
                 order: 2,
                 priority: 5,
-                isDefault: false
+                default: false
             },
             {
                 name: 'Default',
                 order: 999,
-                isDefault: true
+                default: true
             }
         ];
         
@@ -113,26 +113,26 @@ describe('GroupMatcher Priority System', () => {
                 match: /^[^@./]/, // Matches all external libraries
                 order: 1,
                 priority: 1,
-                isDefault: false
+                default: false
             },
             {
                 name: 'ReactEcosystem',
                 match: /^react/, // Matches react specifically
                 order: 2,
                 priority: 5,
-                isDefault: false
+                default: false
             },
             {
                 name: 'ReactDom',
                 match: /^react-dom/, // Matches react-dom specifically
                 order: 3,
                 priority: 10, // Highest priority
-                isDefault: false
+                default: false
             },
             {
                 name: 'Default',
                 order: 999,
-                isDefault: true
+                default: true
             }
         ];
 
@@ -172,19 +172,19 @@ describe('GroupMatcher Priority System', () => {
                 match: /^react/,
                 order: 1,
                 // No priority specified - should default to 0
-                isDefault: false
+                default: false
             },
             {
                 name: 'WithPriority',
                 match: /^react/,
                 order: 2,
                 priority: 5,
-                isDefault: false
+                default: false
             },
             {
                 name: 'Default',
                 order: 999,
-                isDefault: true
+                default: true
             }
         ];
 

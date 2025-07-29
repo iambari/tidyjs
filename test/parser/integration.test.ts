@@ -7,49 +7,49 @@ describe('ImportParser - Integration Tests', () => {
       {
         name: 'React',
         order: 1,
-        isDefault: false,
+        default: false,
         match: /^react$/
       },
       {
         name: 'React Related',
         order: 2,
-        isDefault: false,
+        default: false,
         match: /^react-/
       },
       {
         name: 'Node Modules',
         order: 3,
-        isDefault: false,
+        default: false,
         match: /^[a-zA-Z0-9-]+$/  // Only match simple package names
       },
       {
         name: 'Scoped Packages',
         order: 4,
-        isDefault: false,
+        default: false,
         match: /^@/
       },
       {
         name: 'Parent Directories',
         order: 5,
-        isDefault: false,
+        default: false,
         match: /^\.\./
       },
       {
         name: 'Current Directory',
         order: 6,
-        isDefault: false,
+        default: false,
         match: /^\.\/[^/]/
       },
       {
         name: 'App Components',
         order: 7,
-        isDefault: false,
+        default: false,
         match: /^(components|pages|hooks|utils|services|constants)/
       },
       {
         name: 'Miscellaneous',
         order: 8,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {
@@ -283,7 +283,7 @@ describe('ImportParser - Integration Tests', () => {
 
   test('should handle multiple parser instances with different configs', () => {
     const simpleConfig: Config = {
-      groups: [{ name: 'All', order: 1, isDefault: true }],
+      groups: [{ name: 'All', order: 1, default: true }],
       importOrder: { default: 1, named: 2, typeOnly: 3, sideEffect: 0 }
     };
 

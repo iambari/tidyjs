@@ -18,7 +18,7 @@ describe('Empty line verification - Real world scenarios', () => {
       {
         name: 'Internal',
         order: 3,
-        isDefault: true,
+        default: true,
       },
     ],
     importOrder: {

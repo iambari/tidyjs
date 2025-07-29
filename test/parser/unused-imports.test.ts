@@ -8,19 +8,19 @@ const DEFAULT_CONFIG: Config = {
     {
       name: 'React',
       order: 0,
-      isDefault: false,
+      default: false,
       match: /^react/,
     },
     {
       name: 'Node modules',
       order: 1,
-      isDefault: false,
+      default: false,
       match: /^[^.]/,
     },
     {
       name: 'Local',
       order: 2,
-      isDefault: true,
+      default: true,
     },
   ],
   importOrder: {

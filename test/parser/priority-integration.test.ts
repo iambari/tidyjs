@@ -10,19 +10,19 @@ describe('Priority Integration Tests', () => {
                     match: /.*/, // Matches everything
                     order: 1,
                     priority: 0, // Low priority
-                    isDefault: false
+                    default: false
                 },
                 {
                     name: 'React',
                     match: /^react/,
                     order: 2, 
                     priority: 10, // High priority - should win over Other
-                    isDefault: false
+                    default: false
                 },
                 {
                     name: 'Default',
                     order: 999,
-                    isDefault: true
+                    default: true
                 }
             ],
             importOrder: {
@@ -73,26 +73,26 @@ import lodash from 'lodash';
                     match: /^[^@./]/, // Matches all external packages
                     order: 1,
                     priority: 1,
-                    isDefault: false
+                    default: false
                 },
                 {
                     name: 'ReactFamily',
                     match: /^react/, // Matches react*
                     order: 2,
                     priority: 5,
-                    isDefault: false
+                    default: false
                 },
                 {
                     name: 'ReactDomSpecific',
                     match: /^react-dom/, // Matches react-dom specifically
                     order: 3,
                     priority: 10, // Highest priority
-                    isDefault: false
+                    default: false
                 },
                 {
                     name: 'Default',
                     order: 999,
-                    isDefault: true
+                    default: true
                 }
             ],
             importOrder: {
@@ -161,19 +161,19 @@ import '@internal/styles';
                     match: /^react/,
                     order: 1,
                     priority: 3,
-                    isDefault: false
+                    default: false
                 },
                 {
                     name: 'HighPriority',
                     match: /^react/,
                     order: 1, // Same order as LowPriority
                     priority: 8, // Higher priority
-                    isDefault: false
+                    default: false
                 },
                 {
                     name: 'Default',
                     order: 999,
-                    isDefault: true
+                    default: true
                 }
             ],
             importOrder: {

@@ -15,10 +15,12 @@ Each group in the `tidyjs.groups` array is an object with the following properti
   "name": string,          // Required: Display name for the group
   "order": number,         // Optional: Sort order (auto-assigned if missing)
   "match": string,         // Optional: Regex pattern to match import paths
-  "isDefault": boolean,    // Optional: Mark as default group for unmatched imports
+  "default": boolean,      // Optional: Mark as default group for unmatched imports
   "priority": number       // Optional: Priority for matching (rarely needed)
 }
 ```
+
+> **⚠️ DEPRECATION WARNING**: The `isDefault` property is deprecated. Please use `default` instead. The `isDefault` property will be removed in a future version. TidyJS will automatically migrate your configuration and show warnings when the deprecated property is detected.
 
 > **Note**: The `order` property is now optional thanks to the Auto-Order Resolution system. See [Auto-Order Resolution](#auto-order-resolution) below.
 
@@ -52,7 +54,7 @@ Each group in the `tidyjs.groups` array is an object with the following properti
     {
       "name": "Other",
       "order": 4,
-      "isDefault": true
+      "default": true
     }
   ]
 }
@@ -131,7 +133,7 @@ import styles from './styles.css';
     {
       "name": "Other",
       "order": 9,
-      "isDefault": true
+      "default": true
     }
   ]
 }
@@ -216,7 +218,7 @@ The auto-order system operates in two phases:
     { "name": "Utils", "match": "^@/utils", "order": 1 },    // Collision!
     { "name": "Lodash", "match": "^lodash" },                // Missing order
     { "name": "Components", "match": "^@/components" },      // Missing order  
-    { "name": "Other", "order": 0, "isDefault": true }
+    { "name": "Other", "order": 0, "default": true }
   ]
 }
 ```
@@ -251,7 +253,7 @@ To see these logs, enable debug mode:
 
 TidyJS validates your group configuration and will show errors for:
 
-1. **No default group**: At least one group must have `isDefault: true`
+1. **No default group**: At least one group must have `default: true`
 2. **Multiple default groups**: Only one group can be marked as default
 3. **Duplicate names**: Each group must have a unique name
 4. **Invalid regex**: Match patterns must be valid regular expressions
@@ -300,7 +302,7 @@ Start with broad patterns and add specific ones as needed:
     { "name": "External", "match": "/^[^@.]/" },   // Auto-assigned order: 0
     { "name": "Scoped", "match": "/^@/" },         // Auto-assigned order: 1
     { "name": "Local", "match": "/^\\./" },        // Auto-assigned order: 2
-    { "name": "Other", "isDefault": true }         // Auto-assigned order: 3
+    { "name": "Other", "default": true }         // Auto-assigned order: 3
   ]
 }
 ```
@@ -316,7 +318,7 @@ You can combine explicit orders with auto-assignment:
     { "name": "External", "match": "/^[^@.]/" },              // Auto-assigned: 1
     { "name": "Important", "match": "/^@critical/", "order": 1 }, // Collision → 2
     { "name": "Internal", "match": "/^@/" },                  // Auto-assigned: 3
-    { "name": "Other", "isDefault": true }                    // Auto-assigned: 4
+    { "name": "Other", "default": true }                    // Auto-assigned: 4
   ]
 }
 ```
@@ -349,8 +351,8 @@ This feature works with the base `@app` group and creates subgroups as needed.
 
 Common errors and solutions:
 
-- **"No group is marked as default"**: Add `"isDefault": true` to one group
-- **"Multiple groups are marked as default"**: Remove `isDefault` from all but one group
+- **"No group is marked as default"**: Add `"default": true` to one group
+- **"Multiple groups are marked as default"**: Remove `default` from all but one group
 - **"Duplicate group names found"**: Ensure each group has a unique `name`
 - **"Invalid regex pattern"**: Check your regex syntax, especially escape characters
 
@@ -380,7 +382,7 @@ console.log(pattern.test('react'));            // Should be false
     { "name": "External", "match": "/^[a-zA-Z]/" },                // Auto: 4
     { "name": "Internal", "match": "/^@/" },                       // Auto: 5
     { "name": "Local", "match": "/^\\./", "order": 10 },           // Explicit
-    { "name": "Other", "isDefault": true }                         // Auto: 11
+    { "name": "Other", "default": true }                         // Auto: 11
   ]
 }
 ```
@@ -396,7 +398,7 @@ console.log(pattern.test('react'));            // Should be false
     { "name": "External", "match": "/^[a-zA-Z]/", "order": 3 },
     { "name": "Internal", "match": "/^@/", "order": 4 },
     { "name": "Local", "match": "/^\\./", "order": 5 },
-    { "name": "Other", "order": 6, "isDefault": true }
+    { "name": "Other", "order": 6, "default": true }
   ]
 }
 ```
@@ -413,7 +415,7 @@ console.log(pattern.test('react'));            // Should be false
     { "name": "Services", "match": "/^@services/", "order": 4 },
     { "name": "Utils", "match": "/^@utils/", "order": 5 },
     { "name": "Local", "match": "/^\\./", "order": 6 },
-    { "name": "Other", "order": 7, "isDefault": true }
+    { "name": "Other", "order": 7, "default": true }
   ]
 }
 ```

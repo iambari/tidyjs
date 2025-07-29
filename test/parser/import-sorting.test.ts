@@ -7,13 +7,13 @@ describe('ImportParser - Import Sorting Within Groups', () => {
       {
         name: 'Libraries',
         order: 1,
-        isDefault: false,
+        default: false,
         match: /^[^.]/
       },
       {
         name: 'Local',
         order: 2,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {

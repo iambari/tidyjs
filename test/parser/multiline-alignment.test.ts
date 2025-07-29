@@ -8,13 +8,13 @@ describe('Multiline import alignment edge cases', () => {
             {
                 name: 'React',
                 order: 1,
-                isDefault: false,
+                default: false,
                 match: /^react$/
             },
             {
                 name: 'Other',
                 order: 99,
-                isDefault: true
+                default: true
             }
         ],
         importOrder: {

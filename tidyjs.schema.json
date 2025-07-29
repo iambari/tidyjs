@@ -27,10 +27,16 @@
             "description": "Order of this group (lower numbers appear first)",
             "minimum": 0
           },
-          "isDefault": {
+          "default": {
             "type": "boolean",
             "description": "Whether this is the default group for unmatched imports",
             "default": false
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "DEPRECATED: Use 'default' instead. Whether this is the default group for unmatched imports",
+            "default": false,
+            "deprecated": true
           },
           "priority": {
             "type": "integer",

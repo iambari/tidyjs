@@ -41,7 +41,7 @@ describe('Config Auto Order Integration Tests', () => {
               {
                 name: 'Other',
                 order: 0,
-                isDefault: true
+                default: true
               }
             ];
           case 'format.indent':
@@ -83,7 +83,7 @@ describe('Config Auto Order Integration Tests', () => {
               { name: 'Components', match: '^@/components' }, // no order
               { name: 'Types', match: '^@/types' }, // no order
               { name: 'Services', match: '^@/services', order: 2 },
-              { name: 'Other', order: 0, isDefault: true }
+              { name: 'Other', order: 0, default: true }
             ];
           }
           return defaultValue;
@@ -101,7 +101,7 @@ describe('Config Auto Order Integration Tests', () => {
       expect(groups).toHaveLength(7);
       
       // Expected final arrangement:
-      expect(groups[0]).toMatchObject({ name: 'Other', order: 0, isDefault: true });
+      expect(groups[0]).toMatchObject({ name: 'Other', order: 0, default: true });
       expect(groups[1]).toMatchObject({ name: 'Lodash', order: 1 }); // auto-assigned
       expect(groups[2]).toMatchObject({ name: 'Services', order: 2 }); // kept original
       expect(groups[3]).toMatchObject({ name: 'React', order: 3 }); // kept original
@@ -127,7 +127,7 @@ describe('Config Auto Order Integration Tests', () => {
               { name: 'Fifth', order: 5 },
               { name: 'Sixth' }, // no order
               { name: 'Seventh', order: 5 }, // collision with Fifth
-              { name: 'Other', order: 0, isDefault: true }
+              { name: 'Other', order: 0, default: true }
             ];
           }
           return defaultValue;
@@ -169,7 +169,7 @@ describe('Config Auto Order Integration Tests', () => {
               { name: 'Valid', order: 2 },
               { name: 'Negative', order: -1 }, // invalid
               { name: 'Float', order: 1.5 }, // invalid
-              { name: 'Zero', order: 0, isDefault: true }, // valid (default group)
+              { name: 'Zero', order: 0, default: true }, // valid (default group)
               { name: 'String', order: 'three' as any }, // invalid
               { name: 'Missing' }, // no order
               { name: 'HighValid', order: 1001 } // valid but high
@@ -185,7 +185,7 @@ describe('Config Auto Order Integration Tests', () => {
       expect(groups).toHaveLength(7);
       
       // Invalid orders should be auto-assigned
-      expect(groups[0]).toMatchObject({ name: 'Zero', order: 0, isDefault: true });
+      expect(groups[0]).toMatchObject({ name: 'Zero', order: 0, default: true });
       expect(groups[1]).toMatchObject({ name: 'Negative', order: 1 }); // auto-assigned (invalid order)
       expect(groups[2]).toMatchObject({ name: 'Valid', order: 2 }); // kept original
       expect(groups[3]).toMatchObject({ name: 'Float', order: 3 }); // auto-assigned (invalid order)
@@ -207,7 +207,7 @@ describe('Config Auto Order Integration Tests', () => {
               { name: 'React', match: '^react', order: 2 },
               { name: 'Lodash', match: '/^lodash/i' }, // regex with flags
               { name: 'Utils', match: '^@/utils', order: 2 }, // collision
-              { name: 'Other', order: 0, isDefault: true }
+              { name: 'Other', order: 0, default: true }
             ];
           }
           return defaultValue;
@@ -236,7 +236,7 @@ describe('Config Auto Order Integration Tests', () => {
             return [
               { name: 'External', match: '^[^@]', order: 2 },
               { name: 'Internal', match: '^@/', order: 2 }, // collision
-              { name: 'Other', order: 0, isDefault: true }
+              { name: 'Other', order: 0, default: true }
             ];
           }
           return defaultValue;
@@ -247,7 +247,7 @@ describe('Config Auto Order Integration Tests', () => {
       const groups = configManager.getGroups();
       
       // Should be sorted by order
-      expect(groups[0]).toMatchObject({ name: 'Other', order: 0, isDefault: true });
+      expect(groups[0]).toMatchObject({ name: 'Other', order: 0, default: true });
       expect(groups[1]).toMatchObject({ name: 'External', order: 2 }); // original
       expect(groups[2]).toMatchObject({ name: 'Internal', order: 3 }); // collision resolved
 
@@ -264,7 +264,7 @@ describe('Config Auto Order Integration Tests', () => {
             return [
               { name: 'A', order: 1 },
               { name: 'B', order: 1 }, // collision - will be resolved
-              { name: 'Other', order: 0, isDefault: true }
+              { name: 'Other', order: 0, default: true }
             ];
           }
           return defaultValue;
@@ -285,7 +285,7 @@ describe('Config Auto Order Integration Tests', () => {
             return [
               { name: 'SameName', order: 1 },
               { name: 'SameName', order: 2 }, // duplicate name
-              { name: 'Other', order: 0, isDefault: true }
+              { name: 'Other', order: 0, default: true }
             ];
           }
           return defaultValue;

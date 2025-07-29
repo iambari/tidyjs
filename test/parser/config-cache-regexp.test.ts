@@ -33,13 +33,13 @@ describe('ConfigCache - RegExp Serialization Bug', () => {
         {
           name: 'React',
           order: 1,
-          isDefault: false,
+          default: false,
           match: /^react$/ // First pattern
         },
         {
           name: 'Default',
           order: 2,
-          isDefault: true
+          default: true
         }
       ],
       importOrder: {
@@ -55,13 +55,13 @@ describe('ConfigCache - RegExp Serialization Bug', () => {
         {
           name: 'React',
           order: 1,
-          isDefault: false,
+          default: false,
           match: /^vue$/ // Different pattern - should invalidate cache!
         },
         {
           name: 'Default',
           order: 2,
-          isDefault: true
+          default: true
         }
       ],
       importOrder: {
@@ -106,13 +106,13 @@ describe('ConfigCache - RegExp Serialization Bug', () => {
         {
           name: 'React',
           order: 1,
-          isDefault: false,
+          default: false,
           match: /^react$/
         },
         {
           name: 'Default',
           order: 2,
-          isDefault: true
+          default: true
         }
       ],
       importOrder: {
@@ -128,13 +128,13 @@ describe('ConfigCache - RegExp Serialization Bug', () => {
         {
           name: 'React',
           order: 1,
-          isDefault: false,
+          default: false,
           match: /^react$/ // Same pattern
         },
         {
           name: 'Default',
           order: 3, // Different order - should invalidate cache
-          isDefault: true
+          default: true
         }
       ],
       importOrder: {
@@ -177,13 +177,13 @@ describe('ConfigCache - RegExp Serialization Bug', () => {
         {
           name: 'React',
           order: 1,
-          isDefault: false,
+          default: false,
           match: /^react$/
         },
         {
           name: 'Default',
           order: 2,
-          isDefault: true
+          default: true
         }
       ],
       importOrder: {

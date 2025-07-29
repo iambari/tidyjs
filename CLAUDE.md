@@ -185,7 +185,7 @@ The auto-order system processes group configurations in two phases:
     { "name": "Utils", "match": "^@/utils", "order": 1 },  // ❌ Collision!
     { "name": "Lodash", "match": "^lodash" },              // ❌ Missing order
     { "name": "Components", "match": "^@/components" },    // ❌ Missing order
-    { "name": "Other", "order": 0, "isDefault": true }
+    { "name": "Other", "order": 0, "default": true }
   ]
 }
 ```
@@ -251,7 +251,7 @@ Final order assignment:
   { "name": "React", "match": "^react" },           // Gets order: 0
   { "name": "External", "match": "^[^@]" },         // Gets order: 1  
   { "name": "Internal", "match": "^@/" },           // Gets order: 2
-  { "name": "Other", "order": 99, "isDefault": true} // Keeps order: 99
+  { "name": "Other", "order": 99, "default": true} // Keeps order: 99
 ]
 ```
 

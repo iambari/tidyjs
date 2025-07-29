@@ -293,7 +293,7 @@ import * as Utils from './utils';
         {
             "name": "Local",
             "order": 4,
-            "isDefault": true
+            "default": true
         }
     ],
     "tidyjs.importOrder": {

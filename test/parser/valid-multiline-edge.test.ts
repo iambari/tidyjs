@@ -8,7 +8,7 @@ describe('Valid multiline import edge cases', () => {
             {
                 name: 'Other',
                 order: 1,
-                isDefault: true
+                default: true
             }
         ],
         importOrder: {

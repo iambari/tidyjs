@@ -53,7 +53,7 @@
             {
               "name": "Other",
               "order": 0,
-              "isDefault": true
+              "default": true
             }
           ],
           "description": "Import groups configuration",
@@ -72,7 +72,7 @@
                 "type": "number",
                 "description": "Group order (lower numbers appear first)"
               },
-              "isDefault": {
+              "default": {
                 "type": "boolean",
                 "default": false,
                 "description": "Whether this group is the default for unmatched imports (only one group should have this set to true)"

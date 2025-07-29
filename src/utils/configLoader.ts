@@ -117,11 +117,26 @@ export class ConfigLoader {
         };
 
         if (fileConfig.groups) {
-            config.groups = fileConfig.groups.map((group: ImportGroupFile) => ({
-                ...group,
-                order: group.order ?? 999,
-                match: group.match ? new RegExp(group.match) : undefined,
-            }));
+            config.groups = fileConfig.groups.map((group: ImportGroupFile) => {
+                // Check for deprecated isDefault property in file config
+                if (group.isDefault !== undefined) {
+                    console.warn(`DEPRECATION WARNING: Group "${group.name}" in config file uses deprecated property "isDefault". Please use "default" instead. The "isDefault" property will be removed in a future version.`);
+                    
+                    // If both are specified, default takes precedence
+                    if (group.default === undefined) {
+                        debugLog(`Auto-migrating "isDefault" to "default" for group "${group.name}" in config file`);
+                    } else {
+                        console.warn(`Group "${group.name}" in config file has both "isDefault" and "default" properties. Using "default" value and ignoring "isDefault".`);
+                    }
+                }
+
+                return {
+                    ...group,
+                    order: group.order ?? 999,
+                    default: group.default !== undefined ? group.default : group.isDefault, // Fallback to isDefault if default is not set
+                    match: group.match ? new RegExp(group.match) : undefined,
+                };
+            });
         }
 
         if (fileConfig.importOrder) {
@@ -221,7 +236,7 @@ export class ConfigLoader {
             const groups = workspaceConfig.get<{
                 name: string;
                 order?: number;
-                isDefault?: boolean;
+                default?: boolean;
                 match?: string;
                 priority?: number;
                 sortOrder?: 'alphabetic' | string[];

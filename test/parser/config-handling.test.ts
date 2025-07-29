@@ -7,13 +7,13 @@ describe('ImportParser - Configuration Handling', () => {
       {
         name: 'Libraries',
         order: 1,
-        isDefault: false,
+        default: false,
         match: /^[^.]/
       },
       {
         name: 'Local',
         order: 2,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {
@@ -123,20 +123,20 @@ describe('ImportParser - Configuration Handling', () => {
     expect(result.groups[0].name).toBe('Other');
   });
 
-  test('should handle groups with isDefault flag correctly', () => {
+  test('should handle groups with default flag correctly', () => {
     const defaultGroupConfig: Config = {
       ...baseConfig,
       groups: [
         {
           name: 'React',
           order: 1,
-          isDefault: false,
+          default: false,
           match: /^react$/
         },
         {
           name: 'Default Group',
           order: 2,
-          isDefault: true
+          default: true
         }
       ]
     };
@@ -162,13 +162,13 @@ describe('ImportParser - Configuration Handling', () => {
         {
           name: 'First Default',
           order: 1,
-          isDefault: true,
+          default: true,
           match: /^app\//
         },
         {
           name: 'Second Default',
           order: 2,
-          isDefault: true
+          default: true
         }
       ]
     };
@@ -216,19 +216,19 @@ describe('ImportParser - Configuration Handling', () => {
         {
           name: 'CSS Files',
           order: 1,
-          isDefault: false,
+          default: false,
           match: /\.(css|scss|sass)$/
         },
         {
           name: 'JS/TS Files',
           order: 2,
-          isDefault: false,
+          default: false,
           match: /\.(js|ts|jsx|tsx)$/
         },
         {
           name: 'Others',
           order: 3,
-          isDefault: true
+          default: true
         }
       ]
     };
@@ -253,7 +253,7 @@ describe('ImportParser - Configuration Handling', () => {
       groups: [{
         name: 'Default',
         order: 1,
-        isDefault: true
+        default: true
       }],
       importOrder: {
         default: 1,

@@ -151,7 +151,7 @@ TidyJS uses a sophisticated configuration system with clear precedence:
     {
       "name": "Other",
       "order": 0,
-      "isDefault": true
+      "default": true
     }
   ],
   "tidyjs.importOrder": {
@@ -206,7 +206,7 @@ TidyJS uses a sophisticated configuration system with clear precedence:
     {
       "name": "Other",
       "order": 5,
-      "isDefault": true
+      "default": true
     }
   ]
 }
@@ -251,7 +251,7 @@ TidyJS uses a sophisticated configuration system with clear precedence:
 | `name` | `string` | ✅ | Display name for the group (used in comments) |
 | `match` | `string` | ❌ | Regex pattern to match import paths |
 | `order` | `number` | ❌ | Sort order (auto-assigned if missing) |
-| `isDefault` | `boolean` | ❌ | Default group for unmatched imports (exactly one required) |
+| `default` | `boolean` | ❌ | Default group for unmatched imports (exactly one required) |
 | `priority` | `boolean` | ❌ | Higher priority within the same order |
 | `sortOrder` | `"alphabetic"` or `string[]` | ❌ | Custom sorting within the group |
 
@@ -372,7 +372,7 @@ Create a `.tidyjsrc` file in your project root:
     {
       "name": "Other",
       "order": 999,
-      "isDefault": true
+      "default": true
     }
   ],
   "format": {

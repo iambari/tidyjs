@@ -15,9 +15,9 @@ describe('GroupMatcher Cache Management', () => {
   describe('LRU Cache Behavior', () => {
     it('should cache group matches for performance', () => {
       const groups = [
-        { name: 'React', order: 0, match: /^react/, isDefault: false },
-        { name: 'External', order: 1, match: /^[a-z]/, isDefault: false },
-        { name: 'Default', order: 2, isDefault: true }
+        { name: 'React', order: 0, match: /^react/, default: false },
+        { name: 'External', order: 1, match: /^[a-z]/, default: false },
+        { name: 'Default', order: 2, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -38,9 +38,9 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should implement LRU behavior by moving accessed items to end', () => {
       const groups = [
-        { name: 'React', order: 0, match: /^react/, isDefault: false },
-        { name: 'Vue', order: 1, match: /^vue/, isDefault: false },
-        { name: 'Default', order: 2, isDefault: true }
+        { name: 'React', order: 0, match: /^react/, default: false },
+        { name: 'Vue', order: 1, match: /^vue/, default: false },
+        { name: 'Default', order: 2, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -61,7 +61,7 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should enforce cache size limit with LRU eviction', () => {
       const groups = [
-        { name: 'Default', order: 0, isDefault: true }
+        { name: 'Default', order: 0, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -88,7 +88,7 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should evict approximately 20% of entries when at capacity', () => {
       const groups = [
-        { name: 'Default', order: 0, isDefault: true }
+        { name: 'Default', order: 0, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -115,8 +115,8 @@ describe('GroupMatcher Cache Management', () => {
   describe('Cache Statistics', () => {
     it('should track hits and misses accurately', () => {
       const groups = [
-        { name: 'React', order: 0, match: /^react/, isDefault: false },
-        { name: 'Default', order: 1, isDefault: true }
+        { name: 'React', order: 0, match: /^react/, default: false },
+        { name: 'Default', order: 1, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -138,7 +138,7 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should calculate hit rate correctly', () => {
       const groups = [
-        { name: 'Default', order: 0, isDefault: true }
+        { name: 'Default', order: 0, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -161,7 +161,7 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should provide comprehensive cache statistics', () => {
       const groups = [
-        { name: 'Default', order: 0, isDefault: true }
+        { name: 'Default', order: 0, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -188,8 +188,8 @@ describe('GroupMatcher Cache Management', () => {
   describe('Cache Management Operations', () => {
     it('should clear cache and reset statistics', () => {
       const groups = [
-        { name: 'React', order: 0, match: /^react/, isDefault: false },
-        { name: 'Default', order: 1, isDefault: true }
+        { name: 'React', order: 0, match: /^react/, default: false },
+        { name: 'Default', order: 1, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -216,7 +216,7 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should dispose properly and log statistics', () => {
       const groups = [
-        { name: 'Default', order: 0, isDefault: true }
+        { name: 'Default', order: 0, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -237,8 +237,8 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should log cache statistics when requested', () => {
       const groups = [
-        { name: 'React', order: 0, match: /^react/, isDefault: false },
-        { name: 'Default', order: 1, isDefault: true }
+        { name: 'React', order: 0, match: /^react/, default: false },
+        { name: 'Default', order: 1, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -259,7 +259,7 @@ describe('GroupMatcher Cache Management', () => {
   describe('Memory Efficiency', () => {
     it('should handle large number of unique imports efficiently', () => {
       const groups = [
-        { name: 'Default', order: 0, isDefault: true }
+        { name: 'Default', order: 0, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -286,9 +286,9 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should maintain performance with repeated access patterns', () => {
       const groups = [
-        { name: 'React', order: 0, match: /^react/, isDefault: false },
-        { name: 'Lodash', order: 1, match: /^lodash/, isDefault: false },
-        { name: 'Default', order: 2, isDefault: true }
+        { name: 'React', order: 0, match: /^react/, default: false },
+        { name: 'Lodash', order: 1, match: /^lodash/, default: false },
+        { name: 'Default', order: 2, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -316,7 +316,7 @@ describe('GroupMatcher Cache Management', () => {
   describe('Edge Cases', () => {
     it('should handle empty import sources', () => {
       const groups = [
-        { name: 'Default', order: 0, isDefault: true }
+        { name: 'Default', order: 0, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -334,7 +334,7 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should handle very long import paths', () => {
       const groups = [
-        { name: 'Default', order: 0, isDefault: true }
+        { name: 'Default', order: 0, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);
@@ -353,7 +353,7 @@ describe('GroupMatcher Cache Management', () => {
 
     it('should handle special characters in import paths', () => {
       const groups = [
-        { name: 'Default', order: 0, isDefault: true }
+        { name: 'Default', order: 0, default: true }
       ];
 
       const matcher = new GroupMatcher(groups);

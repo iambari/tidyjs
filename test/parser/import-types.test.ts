@@ -8,7 +8,7 @@ describe('ImportParser - Import Types Detection', () => {
       {
         name: 'Default',
         order: 1,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {

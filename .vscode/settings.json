@@ -40,7 +40,7 @@
     {
       "name": "Other",
       "order": 0,
-      "isDefault": true
+      "default": true
     },
     {
       "name": "Utils",

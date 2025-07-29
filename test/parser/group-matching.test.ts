@@ -7,37 +7,37 @@ describe('ImportParser - Group Matching Logic', () => {
       {
         name: 'App Modules',
         order: 1,
-        isDefault: false,
+        default: false,
         match: /^app\//
       },
       {
         name: 'Node Modules',
         order: 2,
-        isDefault: false,
+        default: false,
         match: /^[a-zA-Z0-9-]+$/  // Only match simple package names
       },
       {
         name: 'Scoped Packages',
         order: 3,
-        isDefault: false,
+        default: false,
         match: /^@/
       },
       {
         name: 'Parent Imports',
         order: 4,
-        isDefault: false,
+        default: false,
         match: /^\.\./
       },
       {
         name: 'Current Directory',
         order: 5,
-        isDefault: false,
+        default: false,
         match: /^\.\/[^/]/
       },
       {
         name: 'Miscellaneous',
         order: 6,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {
@@ -201,13 +201,13 @@ describe('ImportParser - Group Matching Logic', () => {
         {
           name: 'React Specific',
           order: 1,
-          isDefault: false,
+          default: false,
           match: /^react$/
         },
         {
           name: 'All Node Modules',
           order: 2,
-          isDefault: false,
+          default: false,
           match: /^[^.]/
         }
       ],

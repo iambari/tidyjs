@@ -8,7 +8,7 @@ describe('ImportParser - AST Parsing Specifics', () => {
       {
         name: 'Default',
         order: 1,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {

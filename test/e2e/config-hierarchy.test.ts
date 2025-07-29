@@ -119,7 +119,7 @@ describe('TidyJS Configuration Hierarchy E2E Tests', () => {
                     {
                         "name": "VS Code Default",
                         "order": 999,
-                        "isDefault": true
+                        "default": true
                     }
                 ],
                 "tidyjs.format.indent": 6,
@@ -144,7 +144,7 @@ describe('TidyJS Configuration Hierarchy E2E Tests', () => {
                     {
                         "name": "Others",
                         "order": 999,
-                        "isDefault": true
+                        "default": true
                     }
                 ],
                 "format": {

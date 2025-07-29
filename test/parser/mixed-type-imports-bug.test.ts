@@ -7,13 +7,13 @@ describe('Mixed Type Imports Bug', () => {
       {
         name: 'React',
         order: 1,
-        isDefault: false,
+        default: false,
         match: /^react$/
       },
       {
         name: 'Default',
         order: 2,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {

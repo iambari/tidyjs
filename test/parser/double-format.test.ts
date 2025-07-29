@@ -7,7 +7,7 @@ describe('Double Format Test', () => {
       {
         name: 'Other',
         order: 0,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {

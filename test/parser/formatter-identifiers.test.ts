@@ -8,13 +8,13 @@ describe('Formatter - JavaScript Identifier Preservation', () => {
             {
                 name: 'Libraries',
                 order: 1,
-                isDefault: false,
+                default: false,
                 match: /^[a-zA-Z]/
             },
             {
                 name: 'Other',
                 order: 99,
-                isDefault: true
+                default: true
             }
         ],
         importOrder: {

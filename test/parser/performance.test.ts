@@ -7,19 +7,19 @@ describe('ImportParser - Performance Tests', () => {
       {
         name: 'React',
         order: 1,
-        isDefault: false,
+        default: false,
         match: /^react$/
       },
       {
         name: 'Libraries',
         order: 2,
-        isDefault: false,
+        default: false,
         match: /^[^.]/
       },
       {
         name: 'Local',
         order: 3,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {
@@ -60,25 +60,25 @@ describe('ImportParser - Performance Tests', () => {
         {
           name: 'Complex Pattern 1',
           order: 1,
-          isDefault: false,
+          default: false,
           match: /^(@[a-z]+\/[a-z-]+|react|vue|angular)/
         },
         {
           name: 'Complex Pattern 2',
           order: 2,
-          isDefault: false,
+          default: false,
           match: /^[a-z][a-z0-9-]*[a-z0-9]$/
         },
         {
           name: 'Complex Pattern 3',
           order: 3,
-          isDefault: false,
+          default: false,
           match: /^\.{1,2}\/([a-z]+\/)*[a-z]+(\.[a-z]+)?$/
         },
         {
           name: 'Default',
           order: 4,
-          isDefault: true
+          default: true
         }
       ],
       importOrder: performanceConfig.importOrder,

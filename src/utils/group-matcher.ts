@@ -25,7 +25,7 @@ export class GroupMatcher {
                 order: g.order 
             }));
 
-        const defaultGroupObj = groups.find(g => g.isDefault);
+        const defaultGroupObj = groups.find(g => g.default);
         this.defaultGroup = defaultGroupObj ? defaultGroupObj.name : 'Other';
     }
 

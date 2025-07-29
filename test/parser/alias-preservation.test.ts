@@ -18,7 +18,7 @@ describe('Alias preservation', () => {
       {
         name: 'Internal',
         order: 3,
-        isDefault: true,
+        default: true,
       },
     ],
     importOrder: {

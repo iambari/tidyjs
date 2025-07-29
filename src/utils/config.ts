@@ -11,7 +11,7 @@ const DEFAULT_CONFIG: Config = {
     {
       name: 'Other',
       order: 0,
-      isDefault: true,
+      default: true,
     }
   ],
   importOrder: {
@@ -155,7 +155,7 @@ class ConfigManager {
    */
   public validateConfiguration(config: Config): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    const defaultGroups = config.groups.filter(group => group.isDefault === true);
+    const defaultGroups = config.groups.filter(group => group.default === true);
     
     if (defaultGroups.length === 0) {
       errors.push('No group is marked as default. At least one group must be the default.');
@@ -345,7 +345,7 @@ class ConfigManager {
    * const groups = configManager.getGroups();
    * // groups might include: [External, Internal, @app/auth, @app/utils, Other]
    * groups.forEach(group => {
-   *   console.log(`${group.name}: order ${group.order}, default: ${group.isDefault}`);
+   *   console.log(`${group.name}: order ${group.order}, default: ${group.default}`);
    * });
    * ```
    */
@@ -353,7 +353,7 @@ class ConfigManager {
     const config = this.getConfig();
     const baseGroups = config.groups.map(g => ({
       ...g,
-      isDefault: !!g.isDefault,
+      default: !!g.default,
     }));
 
     const subfolderGroups = Array.from(this.subfolders.values());
@@ -363,8 +363,8 @@ class ConfigManager {
       if (a.order !== b.order) {
         return a.order - b.order;
       }
-      if (a.isDefault && !b.isDefault) {return 1;}
-      if (!a.isDefault && b.isDefault) {return -1;}
+      if (a.default && !b.default) {return 1;}
+      if (!a.default && b.default) {return -1;}
 
       return a.name.localeCompare(b.name);
     });
@@ -428,17 +428,30 @@ class ConfigManager {
         name: string;
         match?: string;
         order: number;
-        isDefault?: boolean;
+        default?: boolean;
+        isDefault?: boolean; // Support deprecated property for migration
         sortOrder?: 'alphabetic' | string[];
       }[]>('groups');
 
       if (customGroupsSetting !== undefined) {
         const rawGroups = customGroupsSetting.map(group => {
+          // Check for deprecated isDefault property
+          if (group.isDefault !== undefined) {
+            logError(`DEPRECATION WARNING: Group "${group.name}" uses deprecated property "isDefault". Please use "default" instead. The "isDefault" property will be removed in a future version.`);
+            
+            // If both are specified, default takes precedence
+            if (group.default === undefined) {
+              logDebug(`Auto-migrating "isDefault" to "default" for group "${group.name}"`);
+            } else {
+              logError(`Group "${group.name}" has both "isDefault" and "default" properties. Using "default" value and ignoring "isDefault".`);
+            }
+          }
+
           return {
             name: group.name,
             match: group.match ? this.parseRegexString(group.match) : undefined,
             order: group.order,
-            isDefault: !!group.isDefault,
+            default: group.default !== undefined ? !!group.default : !!group.isDefault, // Fallback to isDefault if default is not set
             sortOrder: group.sortOrder,
             originalMatchString: group.match, // Keep original string for validation
           };

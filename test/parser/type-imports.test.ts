@@ -9,11 +9,11 @@ describe('Type Import Handling', () => {
   beforeEach(() => {
     config = {
       groups: [
-        { name: 'Other', order: 0, match: /^react/, isDefault: false },
-        { name: '@app/dossier', order: 1, match: /^@app\/dossier/, isDefault: false },
-        { name: '@library', order: 2, match: /^@library/, isDefault: false },
-        { name: 'DS', order: 3, match: /^ds/, isDefault: false },
-        { name: 'Default', order: 999, isDefault: true }
+        { name: 'Other', order: 0, match: /^react/, default: false },
+        { name: '@app/dossier', order: 1, match: /^@app\/dossier/, default: false },
+        { name: '@library', order: 2, match: /^@library/, default: false },
+        { name: 'DS', order: 3, match: /^ds/, default: false },
+        { name: 'Default', order: 999, default: true }
       ],
       importOrder: { sideEffect: 0, default: 1, named: 2, typeOnly: 3 },
       format: { singleQuote: true, indent: 4, removeUnusedImports: false },

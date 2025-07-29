@@ -24,7 +24,7 @@
     {
       "name": "Other",
       "order": 5,
-      "isDefault": true
+      "default": true
     }
   ],
   "importOrder": {

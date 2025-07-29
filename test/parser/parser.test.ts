@@ -8,19 +8,19 @@ describe('ImportParser', () => {
       {
         name: 'React',
         order: 1,
-        isDefault: false,
+        default: false,
         match: /^react$/
       },
       {
         name: 'Libraries',
         order: 2,
-        isDefault: false,
+        default: false,
         match: /^[^.]/
       },
       {
         name: 'Local',
         order: 3,
-        isDefault: true,
+        default: true,
         match: /^[.]/
       }
     ],

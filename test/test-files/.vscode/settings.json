@@ -1,6 +1,5 @@
 {
   // TidyJS
-  "editor.formatOnSave": true,
   "tidyjs.debug": true,
   "tidyjs.format.removeUnusedImports": false,
   "tidyjs.format.removeMissingModules": false,
@@ -22,7 +21,7 @@
       "name": "Other",
       "order": 0,
       "priority": 999,
-      "isDefault": true,
+      "default": true,
       "match": "^(react|react-.*|lodash|date-fns|classnames|@fortawesome|@reach|uuid|@tanstack|ag-grid-community|framer-motion)$"
     },
     {

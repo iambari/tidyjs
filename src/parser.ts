@@ -15,11 +15,11 @@ export type ConfigImportGroup = {
     sortOrder?: 'alphabetic' | string[];
 } & (
     | {
-          isDefault: true;
+          default: true;
           match?: RegExp;
       }
     | {
-          isDefault?: false;
+          default?: false;
           match: RegExp;
       }
 );
@@ -106,11 +106,11 @@ export class ImportParser {
         this.groupMatcher = new GroupMatcher(extensionConfig.groups);
 
         const importGroups: ConfigImportGroup[] = extensionConfig.groups.map((g): ConfigImportGroup => {
-            if (g.isDefault) {
+            if (g.default) {
                 return {
                     name: g.name,
                     order: g.order,
-                    isDefault: true,
+                    default: true,
                     match: g.match,
                     priority: g.priority,
                     sortOrder: g.sortOrder,
@@ -119,7 +119,7 @@ export class ImportParser {
                 return {
                     name: g.name,
                     order: g.order,
-                    isDefault: false,
+                    default: false,
                     match: g.match,
                     priority: g.priority,
                     sortOrder: g.sortOrder,
@@ -128,7 +128,7 @@ export class ImportParser {
                 return {
                     name: g.name,
                     order: g.order,
-                    isDefault: true,
+                    default: true,
                     priority: g.priority,
                     sortOrder: g.sortOrder,
                 };
@@ -595,7 +595,7 @@ export class ImportParser {
                 order: configGroup.order,
                 imports: [],
             });
-            if (configGroup.isDefault === true) {
+            if (configGroup.default === true) {
                 configuredDefaultGroupName = configGroup.name;
             }
         }

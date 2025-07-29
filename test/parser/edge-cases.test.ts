@@ -8,7 +8,7 @@ describe('ImportParser - Edge Cases and Corner Cases', () => {
       {
         name: 'Default',
         order: 1,
-        isDefault: true
+        default: true
       }
     ],
     importOrder: {

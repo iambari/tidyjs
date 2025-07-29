@@ -17,7 +17,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'External', match: '^[^@]', order: 0, sortOrder: 'alphabetic' },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -42,7 +42,7 @@ describe('Sort order validation in configuration', () => {
                 order: 0, 
                 sortOrder: ['react', 'react-*', 'lodash', 'axios'] 
               },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -62,7 +62,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'External', match: '^[^@]', order: 0 }, // No sortOrder
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -87,7 +87,7 @@ describe('Sort order validation in configuration', () => {
                 order: 0, 
                 sortOrder: ['@app/components', '@app/components/*', '@app/utils', '@app/utils/*', '*test*'] 
               },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -109,7 +109,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'Invalid', match: '^[^@]', order: 0, sortOrder: 123 },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -130,7 +130,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'Invalid', match: '^[^@]', order: 0, sortOrder: { type: 'custom' } },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -150,7 +150,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'EmptyArray', match: '^[^@]', order: 0, sortOrder: [] },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -171,7 +171,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'MixedTypes', match: '^[^@]', order: 0, sortOrder: ['react', 123, 'lodash'] },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -192,7 +192,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'Duplicates', match: '^[^@]', order: 0, sortOrder: ['react', 'lodash', 'react'] },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -213,7 +213,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'InvalidString', match: '^[^@]', order: 0, sortOrder: 'invalid-sort-type' },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -237,7 +237,7 @@ describe('Sort order validation in configuration', () => {
               { name: 'Invalid1', match: '^[^@]', order: 0, sortOrder: 123 },
               { name: 'Invalid2', match: '^@app', order: 1, sortOrder: [] },
               { name: 'Invalid3', match: '^lodash', order: 2, sortOrder: ['react', 123, 'lodash'] },
-              { name: 'Default', order: 3, isDefault: true }
+              { name: 'Default', order: 3, default: true }
             ];
           }
           return undefined;
@@ -262,7 +262,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'NullSort', match: '^[^@]', order: 0, sortOrder: null },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -282,7 +282,7 @@ describe('Sort order validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'EmptyStrings', match: '^[^@]', order: 0, sortOrder: ['react', '', 'lodash'] },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;

@@ -19,7 +19,7 @@ const DEFAULT_CONFIG: Config = {
         { name: 'Internal', order: 2, match: /^@\// },
         { name: 'Relative', order: 3, match: /^\./ },
         { name: 'Styles', order: 4, match: /\.(css|scss|sass|less)$/ },
-        { name: 'Other', order: 5, isDefault: true }
+        { name: 'Other', order: 5, default: true }
     ],
     importOrder: {
         default: 0,

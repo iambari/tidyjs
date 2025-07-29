@@ -15,7 +15,7 @@ describe('Custom sort order in groups', () => {
           {
             name: 'Default',
             order: 1,
-            isDefault: true
+            default: true
           }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
@@ -56,7 +56,7 @@ import { clsx } from 'clsx';
           {
             name: 'Default',
             order: 1,
-            isDefault: true
+            default: true
           }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
@@ -99,7 +99,7 @@ import { createRoot } from 'react-dom/client';
           {
             name: 'Default',
             order: 1,
-            isDefault: true
+            default: true
           }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
@@ -139,7 +139,7 @@ import { createRoot } from 'react-dom/client';
           {
             name: 'Default',
             order: 1,
-            isDefault: true
+            default: true
           }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
@@ -182,7 +182,7 @@ import dayjs from 'dayjs';
           {
             name: 'Default',
             order: 1,
-            isDefault: true
+            default: true
           }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
@@ -230,7 +230,7 @@ import { debounce } from '@app/utils/async';
           {
             name: 'Default',
             order: 1,
-            isDefault: true
+            default: true
           }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
@@ -278,7 +278,7 @@ import specHelper from 'spec-helper';
           {
             name: 'Default',
             order: 1,
-            isDefault: true
+            default: true
           }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
@@ -325,7 +325,7 @@ import type { DebouncedFunc } from 'lodash';
           {
             name: 'Default',
             order: 1,
-            isDefault: true
+            default: true
           }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }

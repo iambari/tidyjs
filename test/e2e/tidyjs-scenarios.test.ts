@@ -144,7 +144,7 @@ describe('TidyJS Specific Scenarios E2E Tests', () => {
                         { name: 'React', match: '^react', order: 0 },
                         { name: 'External', match: '^[^@./]', order: 1 },
                         { name: 'Internal', match: '^[@./]', order: 2 },
-                        { name: 'Other', order: 3, isDefault: true }
+                        { name: 'Other', order: 3, default: true }
                     ]
                 }
             },
@@ -158,7 +158,7 @@ describe('TidyJS Specific Scenarios E2E Tests', () => {
                         { name: 'App', match: '^@app', order: 3 },
                         { name: 'Shared', match: '^@shared', order: 4 },
                         { name: 'Relative', match: '^[./]', order: 5 },
-                        { name: 'Default', order: 6, isDefault: true }
+                        { name: 'Default', order: 6, default: true }
                     ]
                 }
             },
@@ -186,7 +186,7 @@ describe('TidyJS Specific Scenarios E2E Tests', () => {
             // Simulate configuration validation
             if (scenario.config.groups) {
                 const groups = scenario.config.groups;
-                const hasDefault = groups.some(g => g.isDefault);
+                const hasDefault = groups.some(g => g.default);
                 const orderNumbers = groups.map(g => g.order);
                 const uniqueOrders = new Set(orderNumbers);
                 

@@ -7,8 +7,8 @@ describe('JSX Parsing Integration', () => {
   beforeEach(() => {
     const config: ExtensionGlobalConfig = {
       groups: [
-        { name: 'React', order: 0, match: /^react/, isDefault: false },
-        { name: 'Other', order: 999, isDefault: true }
+        { name: 'React', order: 0, match: /^react/, default: false },
+        { name: 'Other', order: 999, default: true }
       ],
       importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 },
       format: { singleQuote: true, indent: 2, removeUnusedImports: false },

@@ -16,8 +16,8 @@ describe('Parser Disposal and Resource Management', () => {
     it('should dispose parser and clean up GroupMatcher cache', () => {
       const config = {
         groups: [
-          { name: 'React', order: 0, match: /^react/, isDefault: false },
-          { name: 'Default', order: 1, isDefault: true }
+          { name: 'React', order: 0, match: /^react/, default: false },
+          { name: 'Default', order: 1, default: true }
         ],
         importOrder: {
           default: 0,
@@ -58,7 +58,7 @@ describe('Parser Disposal and Resource Management', () => {
     it('should allow accessing GroupMatcher for cache management', () => {
       const config = {
         groups: [
-          { name: 'Default', order: 0, isDefault: true }
+          { name: 'Default', order: 0, default: true }
         ],
         importOrder: {
           default: 0,
@@ -80,7 +80,7 @@ describe('Parser Disposal and Resource Management', () => {
     it('should handle multiple dispose calls safely', () => {
       const config = {
         groups: [
-          { name: 'Default', order: 0, isDefault: true }
+          { name: 'Default', order: 0, default: true }
         ],
         importOrder: {
           default: 0,
@@ -112,7 +112,7 @@ describe('Parser Disposal and Resource Management', () => {
     it('should prevent unbounded cache growth with many unique imports', () => {
       const config = {
         groups: [
-          { name: 'Default', order: 0, isDefault: true }
+          { name: 'Default', order: 0, default: true }
         ],
         importOrder: {
           default: 0,
@@ -152,7 +152,7 @@ describe('Parser Disposal and Resource Management', () => {
       const createParser = (configVersion: number) => {
         return new ImportParser({
           groups: [
-            { name: `Config${configVersion}`, order: 0, isDefault: true }
+            { name: `Config${configVersion}`, order: 0, default: true }
           ],
           importOrder: {
             default: 0,
@@ -198,14 +198,14 @@ describe('Parser Disposal and Resource Management', () => {
     it('should handle parser recreation scenario properly', () => {
       const config1 = {
         groups: [
-          { name: 'Old', order: 0, isDefault: true }
+          { name: 'Old', order: 0, default: true }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
       };
 
       const config2 = {
         groups: [
-          { name: 'New', order: 0, isDefault: true }
+          { name: 'New', order: 0, default: true }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
       };
@@ -240,9 +240,9 @@ describe('Parser Disposal and Resource Management', () => {
     it('should track cache performance across parsing sessions', () => {
       const config = {
         groups: [
-          { name: 'React', order: 0, match: /^react/, isDefault: false },
-          { name: 'External', order: 1, match: /^[a-z]/, isDefault: false },
-          { name: 'Default', order: 2, isDefault: true }
+          { name: 'React', order: 0, match: /^react/, default: false },
+          { name: 'External', order: 1, match: /^[a-z]/, default: false },
+          { name: 'Default', order: 2, default: true }
         ],
         importOrder: { default: 0, named: 1, typeOnly: 2, sideEffect: 3 }
       };

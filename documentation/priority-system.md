@@ -30,14 +30,14 @@ Groupe gagnant = MAX(priority) puis MIN(order) en cas d'égalité
       "match": ".*",           // Match tout
       "order": 1,
       "priority": 0,           // Priorité faible
-      "isDefault": false
+      "default": false
     },
     {
       "name": "React",
       "match": "^react",       // Match react spécifiquement  
       "order": 2,
       "priority": 10,          // Priorité élevée - gagne sur Other
-      "isDefault": false
+      "default": false
     }
   ]
 }

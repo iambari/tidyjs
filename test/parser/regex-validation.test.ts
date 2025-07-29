@@ -18,7 +18,7 @@ describe('Regex validation in configuration', () => {
             return [
               { name: 'Valid', match: '^react', order: 0 },
               { name: 'Invalid', match: '[unclosed', order: 1 },
-              { name: 'Default', order: 2, isDefault: true }
+              { name: 'Default', order: 2, default: true }
             ];
           }
           return undefined;
@@ -38,7 +38,7 @@ describe('Regex validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'InvalidFlags', match: '/^react/xyz', order: 0 },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -58,7 +58,7 @@ describe('Regex validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'Empty', match: '', order: 0 },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -82,7 +82,7 @@ describe('Regex validation in configuration', () => {
               { name: 'React', match: '^react', order: 0 },
               { name: 'Utils', match: '/^@\\/utils/i', order: 1 },
               { name: 'Lodash', match: '^lodash', order: 2 },
-              { name: 'Default', order: 3, isDefault: true }
+              { name: 'Default', order: 3, default: true }
             ];
           }
           return undefined;
@@ -102,7 +102,7 @@ describe('Regex validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'NoMatch', order: 0 },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -125,7 +125,7 @@ describe('Regex validation in configuration', () => {
             return [
               { name: 'Complex1', match: '^@app\\/(components|utils|hooks)\\/', order: 0 },
               { name: 'Complex2', match: '/^(?!.*\\.test\\.).*\\.(ts|tsx)$/i', order: 1 },
-              { name: 'Default', order: 2, isDefault: true }
+              { name: 'Default', order: 2, default: true }
             ];
           }
           return undefined;
@@ -145,7 +145,7 @@ describe('Regex validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'Malformed', match: '^@app\\/(components|utils|hooks\\/', order: 0 }, // Missing closing parenthesis
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -169,7 +169,7 @@ describe('Regex validation in configuration', () => {
               { name: 'Invalid1', match: '[unclosed', order: 0 },
               { name: 'Invalid2', match: '(unclosed', order: 1 },
               { name: 'Invalid3', match: '/pattern/xyz', order: 2 }, // Invalid flags
-              { name: 'Default', order: 3, isDefault: true }
+              { name: 'Default', order: 3, default: true }
             ];
           }
           return undefined;
@@ -194,7 +194,7 @@ describe('Regex validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'NoMatch', match: undefined, order: 0 },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;
@@ -214,7 +214,7 @@ describe('Regex validation in configuration', () => {
           if (key === 'groups') {
             return [
               { name: 'NullMatch', match: null, order: 0 },
-              { name: 'Default', order: 1, isDefault: true }
+              { name: 'Default', order: 1, default: true }
             ];
           }
           return undefined;

@@ -20,11 +20,6 @@
             "name": "Local Files",
             "match": "^\\.",
             "order": 4
-        },
-        {
-            "name": "Default",
-            "order": 5,
-            "isDefault": true
         }
     ],
     "format": {

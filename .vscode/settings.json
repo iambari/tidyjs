@@ -61,6 +61,11 @@
       "name": "Types",
       "match": "^(?!@typescript).*types.*$",
       "order": 4
+    },
+    {
+      "name": "Styles",
+      "match": "\\.css$",
+      "order": 5
     }
   ],
   "json.schemas": [

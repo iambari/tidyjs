@@ -313,9 +313,9 @@ describe('ImportParser - Integration Tests', () => {
     const parser = new ImportParser(realWorldConfig);
     const result = parser.parse(problematicCode);
 
-    // When there's a syntax error, the entire parse fails
+    // With fallback parser, we now extract imports even with syntax errors
     expect(result.invalidImports).toBeDefined();
     expect(result.invalidImports).toHaveLength(1);
-    expect(result.groups.length).toBe(0); // No groups when parse fails
+    expect(result.groups.length).toBeGreaterThan(0); // Fallback parser extracts valid imports
   });
 });

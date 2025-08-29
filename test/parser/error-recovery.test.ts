@@ -33,12 +33,12 @@ describe('ImportParser - Error Recovery and Invalid Imports', () => {
     
     const result = parser.parse(invalidCode);
     
-    // With fallback parser, we now extract imports even with syntax errors
-    expect(result.groups.length).toBeGreaterThan(0);
-    expect(result.originalImports.length).toBeGreaterThan(0);
+    // With syntax errors, parser should fail gracefully
+    expect(result.groups).toHaveLength(0);
+    expect(result.originalImports).toHaveLength(0);
     expect(result.invalidImports).toBeDefined();
     expect(result.invalidImports!.length).toBeGreaterThan(0);
-    expect(result.invalidImports![0].error).toContain('fallback');
+    expect(result.invalidImports![0].error).toContain('Syntax error during parsing');
   });
 
   test('should handle missing closing braces in imports', () => {
@@ -97,16 +97,15 @@ describe('ImportParser - Error Recovery and Invalid Imports', () => {
     expect(result.invalidImports![0].error.length).toBeGreaterThan(0);
   });
 
-  test('should preserve raw import text in error cases', () => {
+  test('should preserve raw source code in error cases', () => {
     const invalidCode = 'import { broken from "react";';
     
     const result = parser.parse(invalidCode);
     
-    // With fallback parser, invalid imports info is in the error message
+    // Parser should fail and preserve source code in raw field
     expect(result.invalidImports).toBeDefined();
-    expect(result.invalidImports![0].raw).toBeDefined();
-    // The raw field now contains empty string for fallback parser errors
-    expect(result.invalidImports![0].error).toContain('fallback');
+    expect(result.invalidImports![0].raw).toBe(invalidCode);
+    expect(result.invalidImports![0].error).toContain('Syntax error during parsing');
   });
 
   test('should handle mixed valid and invalid imports', () => {

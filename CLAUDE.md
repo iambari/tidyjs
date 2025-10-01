@@ -41,11 +41,10 @@ TidyJS is a VS Code extension that automatically organizes and formats import de
     - Optimized alignment algorithm for performance
 
 3. **Extension (`src/extension.ts`)**: VS Code integration layer
-
     - Registers commands and keybindings
     - Handles format-on-save functionality
     - Manages configuration updates and validation
-    - Provides error recovery and user notifications
+    - Provides graceful error handling with clear error messages
     - **Non-intrusive debug logging** without UI interruption
 
 4. **Configuration (`src/utils/config.ts`)**: ConfigManager with advanced validation

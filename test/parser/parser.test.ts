@@ -192,12 +192,11 @@ describe('ImportParser', () => {
       const invalidCode = 'import { from "react";'; // Missing closing brace
       const result = parser.parse(invalidCode);
 
-      // With fallback parser, we now extract imports even with syntax errors
-      expect(result.groups.length).toBeGreaterThan(0);
+      // Parser should fail gracefully with syntax errors
+      expect(result.groups).toHaveLength(0);
       expect(result.invalidImports).toBeDefined();
       expect(result.invalidImports!.length).toBeGreaterThan(0);
-      // The error message now indicates fallback parser was used
-      expect(result.invalidImports![0].error).toContain('fallback');
+      expect(result.invalidImports![0].error).toContain('Syntax error during parsing');
     });
 
     test('should continue parsing after encountering invalid imports', () => {

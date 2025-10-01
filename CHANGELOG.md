@@ -252,7 +252,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   **Missing Modules Detection**: New `removeMissingModules` configuration option to remove imports from non-existent modules (#680c3c1)
 -   **Excluded Folders**: Added `excludedFolders` configuration to skip formatting in specific directories (#51fdd17)
 -   **Context Menu Integration**: Added "Format Imports" to the editor context menu for TypeScript/JavaScript files
--   **CLAUDE.md**: Added AI assistant guidance file for better development experience
 -   **Comprehensive Test Suite**: New test structure in `test/parser/` with specialized test categories
 
 ### Changed

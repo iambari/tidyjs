@@ -138,10 +138,5 @@ export function showOutputChannel(): void {
   OUTPUT_CHANNEL.show();
 }
 
-/**
- * Clear all logs from the output channel
- */
-export function clearLogs(): void {
-  OUTPUT_CHANNEL.clear();
-}
+
 

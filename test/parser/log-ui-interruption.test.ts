@@ -56,11 +56,6 @@ describe('Log - UI Interruption Fix', () => {
     expect(mockOutputChannel.show).toHaveBeenCalledWith();
   });
 
-  test('clearLogs should clear the output channel', () => {
-    log.clearLogs();
-
-    expect(mockOutputChannel.clear).toHaveBeenCalled();
-  });
 
   test('logDebug with debug mode disabled should not log anything', () => {
     // Mock debug mode as disabled

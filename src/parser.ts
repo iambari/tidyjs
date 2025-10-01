@@ -425,6 +425,12 @@ export class ImportParser {
 
             // Filter individual specifiers based on unused imports
             if (unusedImports && unusedImports.length > 0) {
+                // Always keep side-effect imports as they have side effects by definition
+                if (importItem.type === ImportType.SIDE_EFFECT) {
+                    filteredImports.push(importItem);
+                    continue;
+                }
+
                 const filteredSpecifiers: ImportSpecifier[] = [];
                 let filteredDefaultImport: string | undefined;
 

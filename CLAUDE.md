@@ -312,3 +312,8 @@ TidyJS supports two configuration file formats:
   }
 }
 ```
+
+
+## Development Process
+
+We implement features atomically, progressively and always with tests. After each new implementation, manual testing of the extension is mandatory, validated by a Yes / No choice.

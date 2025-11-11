@@ -99,26 +99,25 @@ export class PathResolver {
         document: TextDocument,
         mappings: PathMapping[]
     ): string | null {
-        // If it's already using an alias, keep it
-        for (const mapping of mappings) {
-            if (this.matchesPattern(importPath, mapping.pattern)) {
-                return null; // Already absolute with alias
-            }
-        }
-
-        // If it's a relative path, try to convert to alias
         if (importPath.startsWith('.')) {
             const documentDir = Uri.joinPath(document.uri, '..');
             const absoluteUri = Uri.joinPath(documentDir, importPath);
             const absolutePath = absoluteUri.fsPath;
 
-            // Try to match against path mappings
+            logDebug(`Converting relative to absolute: ${importPath}`);
+            logDebug(`  Document dir: ${documentDir.fsPath}`);
+            logDebug(`  Absolute path: ${absolutePath}`);
+
             for (const mapping of mappings) {
+                logDebug(`  Trying mapping pattern: ${mapping.pattern} → ${mapping.paths.join(', ')}`);
+
                 for (const mappedPath of mapping.paths) {
                     const mappedPattern = mappedPath
                         .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
                         .replace(/\*/g, '(.*?)');
                     const regex = new RegExp(`^${mappedPattern}$`);
+
+                    logDebug(`    Regex pattern: ^${mappedPattern}$`);
                     const match = absolutePath.match(regex);
 
                     if (match) {
@@ -127,9 +126,21 @@ export class PathResolver {
                             const captured = match[captureIndex++] || '';
                             return captured.replace(/(\.d\.(?:cts|mts|ts)|\.(?:tsx?|jsx?))$/, '');
                         });
+                        logDebug(`    ✅ Matched! Captured: ${match.slice(1).join(', ')}`);
                         logDebug(`Converted relative to alias: ${importPath} → ${aliasPath}`);
                         return aliasPath;
+                    } else {
+                        logDebug(`    ❌ No match`);
                     }
+                }
+            }
+
+            logDebug(`  No mapping matched for: ${absolutePath}`);
+        } else {
+            for (const mapping of mappings) {
+                if (this.matchesPattern(importPath, mapping.pattern)) {
+                    logDebug(`Import ${importPath} already matches alias pattern ${mapping.pattern}`);
+                    return null;
                 }
             }
         }

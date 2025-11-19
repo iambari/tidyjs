@@ -69,13 +69,19 @@ export class PathResolver {
         importPath: string,
         document: TextDocument
     ): Promise<string | null> {
+        const isRelativePath = importPath.startsWith('.');
+
+        // In relative mode, already-relative imports should be left untouched
+        if (this.config.mode === 'relative' && isRelativePath) {
+            return null;
+        }
+
         const mappings = await this.loadPathMappings(document);
         if (mappings.length === 0) {
             logDebug(`No path mappings found for ${importPath}`);
             return null;
         }
 
-        const isRelativePath = importPath.startsWith('.');
         const isPotentialAlias = importPath.startsWith('@') || importPath.startsWith('~');
 
         const matchesAlias = mappings.some(mapping => this.matchesPattern(importPath, mapping.pattern));

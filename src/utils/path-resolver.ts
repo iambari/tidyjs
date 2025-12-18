@@ -132,6 +132,16 @@ export class PathResolver {
                             const captured = match[captureIndex++] || '';
                             return captured.replace(/(\.d\.(?:cts|mts|ts)|\.(?:tsx?|jsx?))$/, '');
                         });
+
+                        const isValidAlias = aliasPath.startsWith('@') ||
+                                           aliasPath.startsWith('~') ||
+                                           aliasPath.includes('/');
+
+                        if (!isValidAlias) {
+                            logDebug(`    ⚠️ Skipping invalid alias (no prefix): ${aliasPath}`);
+                            continue;
+                        }
+
                         logDebug(`    ✅ Matched! Captured: ${match.slice(1).join(', ')}`);
                         logDebug(`Converted relative to alias: ${importPath} → ${aliasPath}`);
                         return aliasPath;

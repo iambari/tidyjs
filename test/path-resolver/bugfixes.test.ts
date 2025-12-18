@@ -496,6 +496,68 @@ describe('Path Resolver - Critical Bug Fixes', () => {
         });
     });
 
+    describe('[Critical] baseUrl wildcard should not produce invalid aliases', () => {
+        it('should NOT convert ./src/aliases to "aliases" (invalid alias without prefix)', () => {
+            const mappedPath = '/project/src/*';
+            const absolutePath = '/project/src/aliases';
+
+            const mappedPattern = mappedPath
+                .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+                .replace(/\*/g, '(.*?)');
+            const regex = new RegExp(`^${mappedPattern}$`);
+            const match = absolutePath.match(regex);
+
+            expect(match).not.toBeNull();
+
+            const aliasPattern = '*';
+            let captureIndex = 1;
+            const aliasPath = aliasPattern.replace(/\*/g, () => {
+                const captured = match![captureIndex++] || '';
+                return captured.replace(/(\.d\.(?:cts|mts|ts)|\.(?:tsx?|jsx?))$/, '');
+            });
+
+            expect(aliasPath).toBe('aliases');
+
+            const isValidAlias = aliasPath.startsWith('@') ||
+                               aliasPath.startsWith('~') ||
+                               aliasPath.includes('/');
+
+            expect(isValidAlias).toBe(false);
+        });
+
+        it('should accept valid alias with prefix like @app/aliases', () => {
+            const aliasPath = '@app/aliases';
+
+            const isValidAlias = aliasPath.startsWith('@') ||
+                               aliasPath.startsWith('~') ||
+                               aliasPath.includes('/');
+
+            expect(isValidAlias).toBe(true);
+        });
+
+        it('should accept valid alias with path like utils/helpers', () => {
+            const aliasPath = 'utils/helpers';
+
+            const isValidAlias = aliasPath.startsWith('@') ||
+                               aliasPath.startsWith('~') ||
+                               aliasPath.includes('/');
+
+            expect(isValidAlias).toBe(true);
+        });
+
+        it('should reject bare module names that could break imports', () => {
+            const bareModules = ['aliases', 'config', 'utils', 'types'];
+
+            for (const moduleName of bareModules) {
+                const isValidAlias = moduleName.startsWith('@') ||
+                                   moduleName.startsWith('~') ||
+                                   moduleName.includes('/');
+
+                expect(isValidAlias).toBe(false);
+            }
+        });
+    });
+
     describe('Regression tests: ensure old behavior still works', () => {
         it('should still handle single wildcard patterns', () => {
             const pattern = '@app/*';

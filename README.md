@@ -66,9 +66,9 @@ import * as Utils from './utils';
 **After:**
 ```typescript
 // React
-import React from 'react';
+import React        from 'react';
 import { useState } from 'react';
-import type { FC } from 'react';
+import type { FC }  from 'react';
 
 // DS Components
 import { YpButton, YpTable } from 'ds';
